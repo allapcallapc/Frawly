@@ -1,0 +1,160 @@
+name: Test
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ '*' ]
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test --exclude-tags integration --coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-unit
+          path: coverage/lcov.info
+          if-no-files-found: ignore
+
+      - name: Run analysis
+        run: flutter analyze --no-fatal-infos
+
+      - name: Generate app icons
+        uses: ./.github/actions/generate-app-icons
+        with:
+          platform: android
+
+      - name: Run Android unit tests
+        run: |
+          flutter build apk --debug --target-platform android-arm64
+          cd android && ./gradlew :app:jacocoTestReport
+
+      - name: Upload Android coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-android
+          path: build/app/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+          if-no-files-found: ignore
+
+  integration-test:
+    # Separate job from `test` above: a flaky/slow Docker startup here should
+    # never block the main test signal. Runs the 'integration' tests skipped
+    # by the `test` job's --exclude-tags integration - see
+    # test/integration/container_service_integration_test.dart - against a
+    # real local Supabase stack (Docker is preinstalled on ubuntu-latest
+    # runners, so this needs no extra setup beyond the CLI). This is also
+    # currently the only Supabase project this app is ever tested against -
+    # see CLAUDE.md's "Backend hosting" section.
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase stack
+        run: supabase start
+
+      - name: Export local Supabase connection details
+        id: supabase
+        run: |
+          status=$(supabase status -o json)
+          echo "Available \`supabase status -o json\` keys: $(echo "$status" | jq -r 'keys | join(", ")')"
+          url=$(echo "$status" | jq -r '.API_URL // .api_url // empty')
+          key=$(echo "$status" | jq -r '.SERVICE_ROLE_KEY // .service_role_key // .SECRET_KEY // .secret_key // empty')
+          if [ -z "$url" ] || [ -z "$key" ]; then
+            echo "::error::Could not find URL/admin key in \`supabase status -o json\` output - see the key list printed above and update the jq filters in this step."
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "service_role_key=$key" >> "$GITHUB_OUTPUT"
+
+      - name: Run integration tests
+        env:
+          SUPABASE_TEST_URL: ${{ steps.supabase.outputs.url }}
+          SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ steps.supabase.outputs.service_role_key }}
+        run: flutter test --tags integration --run-skipped --coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-integration
+          path: coverage/lcov.info
+          if-no-files-found: ignore
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop
+
+  codecov:
+    needs: [test, integration-test]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download unit test coverage
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: coverage-unit
+          path: coverage-unit
+
+      - name: Download integration test coverage
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: coverage-integration
+          path: coverage-integration
+
+      - name: Download Android coverage
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: coverage-android
+          path: coverage-android
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage-unit/lcov.info,coverage-integration/lcov.info,coverage-android/jacocoTestReport.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
