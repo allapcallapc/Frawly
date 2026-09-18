@@ -1,27 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'config/supabase_config.dart';
 import 'providers/containers_provider.dart';
+import 'screens/connect_screen.dart';
 import 'screens/main_shell.dart';
+import 'services/backend_connection.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // SupabaseConfig has no built-in default (see its doc comment) - catch a
-  // missing --dart-define here with a clear message instead of letting it
-  // silently try to connect to an empty URL.
-  if (SupabaseConfig.url.isEmpty || SupabaseConfig.anonKey.isEmpty) {
-    runApp(const _MissingConfigApp());
-    return;
-  }
-  await Supabase.initialize(
-    url: SupabaseConfig.url,
-    // supabase_flutter's `publishableKey` param accepts either a modern
-    // sb_publishable_... key or a legacy anon JWT (like the local dev
-    // stack's fixed demo key) interchangeably.
-    publishableKey: SupabaseConfig.anonKey,
-  );
+void main() {
   runApp(const FreezerLogApp());
 }
 
@@ -30,8 +15,21 @@ class FreezerLogApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ContainersProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => BackendConnection()..loadStored()),
+        // The BackendConnection instance below is the same one across
+        // connect/disconnect/reconnect - it mutates its own url/passphrase
+        // in place and notifies - so ContainerService (which holds a
+        // reference to it, not a copy) always sees the current connection
+        // without ContainersProvider itself needing to be rebuilt.
+        ChangeNotifierProxyProvider<BackendConnection, ContainersProvider>(
+          create: (context) =>
+              ContainersProvider(connection: context.read<BackendConnection>()),
+          update: (context, connection, previous) =>
+              previous ?? ContainersProvider(connection: connection),
+        ),
+      ],
       child: MaterialApp(
         title: 'Freezer Log',
         debugShowCheckedModeBanner: false,
@@ -52,45 +50,27 @@ class FreezerLogApp extends StatelessWidget {
           ),
           useMaterial3: true,
         ),
-        home: const MainShell(),
+        home: const _Root(),
       ),
     );
   }
 }
 
-/// Shown instead of the real app when env/*.json wasn't passed via
-/// --dart-define-from-file, or points at a project that doesn't exist yet
-/// (see CLAUDE.md's "Backend hosting" section) - a silent blank/crashed
-/// app would be much harder to diagnose than this.
-class _MissingConfigApp extends StatelessWidget {
-  const _MissingConfigApp();
+/// Gates between [ConnectScreen] and [MainShell] on [BackendConnection]'s
+/// state - shown a loading spinner only for the brief secure-storage read
+/// on first launch, then switches to whichever screen fits. Disconnecting
+/// (see the "Backend" section of Manage containers) rebuilds this back to
+/// [ConnectScreen]; reconnecting rebuilds it forward again, so there's no
+/// separate app restart needed either way.
+class _Root extends StatelessWidget {
+  const _Root();
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Freezer Log',
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.error_outline, size: 48),
-                SizedBox(height: 16),
-                Text(
-                  'Missing Supabase config.\n\n'
-                  'Run with --dart-define-from-file=env/local.json (or '
-                  'staging.json/prod.json once those have a real project -\n'
-                  'see CLAUDE.md\'s "Backend hosting" section).',
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    final connection = context.watch<BackendConnection>();
+    if (connection.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    return connection.isConnected ? const MainShell() : const ConnectScreen();
   }
 }

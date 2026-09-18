@@ -21,23 +21,73 @@ A PR title without one of these prefixes won't be picked up by release-please at
 2. Merging that Release PR is the only manual release step: it creates the release as a draft, `release-apk.yml` builds the APK and attaches it, then publishes the release, which triggers `deploy.yml` to deploy the web build to GitHub Pages.
 3. Do not create GitHub Releases manually via the UI, and do not push tags directly - either bypasses release-please's version tracking and can conflict with GitHub's immutable-releases restriction (once a tag name has been used by a published release, it can never have a release re-attached to it, even if that release is deleted).
 
-## Backend hosting
+## Architecture: the app never talks to the data layer directly
 
-Frawly has **no hosted Supabase project yet**. The org (`25sixela25@gmail.com's Org`) is on Supabase's free plan, capped at 2 active projects, and both slots are already used by SplitBalance (prod + staging) - creating a 3rd was attempted and rejected by the API when this app was built. See `env/README.md` for the full picture.
+The Flutter app (`lib/`) only ever speaks HTTP to a small backend-for-frontend
+(`backend/`: a Cloudflare Worker running Hono, backed by D1/SQLite) - it has
+no Supabase/Postgres/D1 client embedded in it, and no direct database
+credentials. `lib/services/container_service.dart` is the *only* place that
+makes network calls, and every one of them is a REST request to the Worker
+(`GET/POST/PATCH/DELETE`, see `backend/src/index.ts` for the routes). This
+means the storage layer can change again later (D1 -> something else)
+without the app changing at all beyond `ContainerService`.
 
-Practically, this means:
+### Auth model
 
-- `supabase/migrations/*.sql` is only ever applied to a **local** Supabase stack (`supabase start`, Docker) today - there is no staging/prod project to `supabase db push` to yet.
-- `env/local.json` has real (public, non-secret) default local-dev credentials and works out of the box with `supabase start`.
-- `env/staging.json` and `env/prod.json` are empty placeholders. Builds using them still succeed (Flutter doesn't validate `--dart-define` values at compile time), but the deployed app fails fast at startup with a clear "Missing Supabase config" error (see `main.dart`) until real values are filled in.
-- The CI/CD workflow shape (`deploy.yml`, `deploy-main.yml`, `deploy-pr-preview.yml`, `release-apk.yml`) is otherwise identical to SplitBalance's, so wiring in a real project later is just filling in two JSON files and running the migrations against it - no workflow changes needed.
+Single-user, not multi-tenant: one shared passphrase (`API_PASSPHRASE`, a
+Wrangler secret - see `backend/README.md`) checked on every request
+(`backend/src/auth.ts`). There's no sign-up/sign-in flow and no per-user
+data isolation - this is intentionally "just for me," not a shared product.
 
-When a project slot frees up (new paid project, pausing/deleting one of SplitBalance's, or upgrading the org), fill in `env/staging.json`/`env/prod.json` and run the migrations against it. Until then, there's no `keep-supabase-staging-awake.yml`-style workflow here - nothing to keep awake.
+The app itself never bakes a backend URL or passphrase into a build. Instead:
 
-## Avoid Postgres RPCs/schema migrations when a client-side query can do the job
+- `lib/services/backend_connection.dart` (`BackendConnection`) holds the
+  currently-connected backend's URL + passphrase, persisted on-device via
+  `flutter_secure_storage`.
+- `lib/screens/connect_screen.dart` is shown whenever `BackendConnection` has
+  nothing saved (first launch, or after disconnecting) - it verifies the
+  URL/passphrase actually reach a Frawly backend (`GET /health`) before
+  saving them.
+- "Manage containers" has a "Backend" section with a **Disconnect** button
+  (`lib/screens/manage_containers_screen.dart`), so you can switch backends
+  (e.g. staging -> production) from within the app itself, not just at
+  build time.
+- `env/*.json`'s `BACKEND_URL` only *pre-fills* the connect screen's URL
+  field for convenience (see `lib/config/backend_config.dart`) - it's never
+  auto-connected, and the passphrase is never in `env/*.json` at all.
 
-There's no CI step or automation that applies `supabase/migrations/*.sql` to a staging or production Supabase project - it's a manual `supabase db push` someone has to run (and today, there isn't even a hosted project to push to - see "Backend hosting" above). Code that depends on a new migration (e.g. a new RPC function) will work locally but break against a hosted project (`PGRST202: Could not find the function ...`) until someone remembers to push it.
+### Two environments: staging and production
 
-Prefer plain PostgREST queries (`.select()`, `.update().in_(...)`, `.upsert(..., onConflict: 'id', ignoreDuplicates: true)`, etc.) over a new RPC whenever one can do the job - see `lib/services/container_service.dart` for this pattern in practice (bulk filling/empty/add-range are all single atomic PostgREST requests, no RPC).
+Mirrors SplitBalance's prod/staging split, but with two D1 databases behind
+one Worker (`backend/wrangler.toml`'s `[env.staging]`/`[env.production]`)
+instead of two separate Supabase projects:
 
-The one deliberate exception is `import_containers` (`supabase/migrations/20260917230100_import_replace_function.sql`): full-dataset import must atomically replace every row, and there's no single plain PostgREST request that expresses "delete everything, then insert this instead" as one transaction. Only reach for an RPC/migration when there's genuinely no client-side way to get the right answer like this - and flag explicitly (as here) that it needs a manual `supabase db push` before it'll work anywhere but locally.
+- `main` branch deploys are the staging preview app, pointed at the
+  `frawly-api` Worker's `staging` environment (`env/staging.json`).
+- Published releases deploy the production app, pointed at the
+  `production` environment (`env/prod.json`).
+- `backend-deploy.yml` deploys the Worker itself the same way: `staging` on
+  every push to `main`, `production` on every published release - see
+  `backend/README.md` for the one-time Cloudflare setup this needs
+  (`CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` repo secrets).
+
+### Schema changes: D1 migrations, applied by CI
+
+D1 migrations (`backend/migrations/*.sql`) run through `wrangler d1
+migrations apply`, which `backend-deploy.yml` calls automatically against
+the right environment before every deploy - so, unlike SplitBalance's
+manual `supabase db push`, merging a PR that adds a migration is enough for
+it to reach staging/prod; nobody has to remember a separate manual step.
+
+### Avoid a new endpoint/migration when the existing ones can do the job
+
+Prefer expressing a new client need as a call to an existing Worker route,
+or a small addition to one, over a new bespoke endpoint - and prefer a
+plain `UPDATE ... WHERE id IN (...)` / `INSERT ... ON CONFLICT` over
+reaching for D1's `.batch()` transaction unless the operation genuinely
+needs several statements to succeed or fail together (see
+`backend/src/index.ts`'s `/fillings`, `/containers/empty`, and
+`/containers/range` handlers, which are each a single statement, versus
+`/import`, which genuinely needs `.batch()` to replace every row
+atomically).
+

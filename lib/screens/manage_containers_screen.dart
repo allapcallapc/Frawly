@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/containers_provider.dart';
+import '../services/backend_connection.dart';
 import '../utils/date_utils.dart';
 
 /// Registry management: add a single id, add a bulk range, remove an id,
@@ -190,6 +191,30 @@ class _ManageContainersScreenState extends State<ManageContainersScreen> {
     }
   }
 
+  Future<void> _disconnect() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Disconnect backend?'),
+        content: const Text(
+          "You'll need to enter the URL and passphrase again to reconnect.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Disconnect'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await context.read<BackendConnection>().disconnect();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -316,6 +341,27 @@ class _ManageContainersScreenState extends State<ManageContainersScreen> {
                     ),
                   ),
                 ],
+              ),
+              const Divider(height: 32),
+              Text('Backend', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Consumer<BackendConnection>(
+                builder: (context, connection, _) => Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        connection.url ?? 'Not connected',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: _busy ? null : _disconnect,
+                      child: const Text('Disconnect'),
+                    ),
+                  ],
+                ),
               ),
             ],
           );

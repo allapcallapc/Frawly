@@ -30,7 +30,7 @@ jobs:
         run: flutter pub get
 
       - name: Run tests
-        run: flutter test --exclude-tags integration --coverage
+        run: flutter test --coverage
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
@@ -59,73 +59,8 @@ jobs:
           path: build/app/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
           if-no-files-found: ignore
 
-  integration-test:
-    # Separate job from `test` above: a flaky/slow Docker startup here should
-    # never block the main test signal. Runs the 'integration' tests skipped
-    # by the `test` job's --exclude-tags integration - see
-    # test/integration/container_service_integration_test.dart - against a
-    # real local Supabase stack (Docker is preinstalled on ubuntu-latest
-    # runners, so this needs no extra setup beyond the CLI). This is also
-    # currently the only Supabase project this app is ever tested against -
-    # see CLAUDE.md's "Backend hosting" section.
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-
-      - name: Get dependencies
-        run: flutter pub get
-
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Start local Supabase stack
-        run: supabase start
-
-      - name: Export local Supabase connection details
-        id: supabase
-        # `supabase status -o json` on current CLI versions no longer
-        # includes ANON_KEY/SERVICE_ROLE_KEY at all (confirmed by printing
-        # its key list here on a run that failed trying to jq them out -
-        # only API_URL/DB_URL/etc are present) - so this uses the fixed
-        # local-dev defaults directly instead of parsing them out of CLI
-        # output that keeps changing shape. Both are safe, publicly
-        # documented, non-secret defaults for `supabase start` (see
-        # env/local.json, which uses the same anon key) - config.toml
-        # doesn't override the local jwt_secret, so they're stable here.
-        run: |
-          echo "Available \`supabase status -o json\` keys: $(supabase status -o json | jq -r 'keys | join(", ")')"
-          echo "url=http://127.0.0.1:54321" >> "$GITHUB_OUTPUT"
-          echo "service_role_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU" >> "$GITHUB_OUTPUT"
-
-      - name: Run integration tests
-        env:
-          SUPABASE_TEST_URL: ${{ steps.supabase.outputs.url }}
-          SUPABASE_TEST_SERVICE_ROLE_KEY: ${{ steps.supabase.outputs.service_role_key }}
-        run: flutter test --tags integration --run-skipped --coverage
-
-      - name: Upload coverage
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-integration
-          path: coverage/lcov.info
-          if-no-files-found: ignore
-
-      - name: Stop local Supabase stack
-        if: always()
-        run: supabase stop
-
   codecov:
-    needs: [test, integration-test]
+    needs: [test]
     if: always()
     runs-on: ubuntu-latest
 
@@ -140,13 +75,6 @@ jobs:
           name: coverage-unit
           path: coverage-unit
 
-      - name: Download integration test coverage
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: coverage-integration
-          path: coverage-integration
-
       - name: Download Android coverage
         uses: actions/download-artifact@v4
         continue-on-error: true
@@ -157,6 +85,6 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          files: coverage-unit/lcov.info,coverage-integration/lcov.info,coverage-android/jacocoTestReport.xml
+          files: coverage-unit/lcov.info,coverage-android/jacocoTestReport.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false

@@ -1,6 +1,6 @@
 /// Mirrors the `status` check constraint on the `containers` table
-/// (see supabase/migrations/20260917230000_initial_schema.sql) - keep the
-/// two in sync.
+/// (see backend/migrations/0001_initial_schema.sql) - keep the two in
+/// sync.
 enum ContainerStatus {
   vacant('vacant', 'Vacant'),
   frozen('frozen', 'Frozen'),

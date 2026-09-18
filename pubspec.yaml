@@ -1,5 +1,5 @@
 name: frawly
-description: "Freezer Log: a Flutter app for tracking frozen meal-prep containers with Supabase storage."
+description: "Freezer Log: a Flutter app for tracking frozen meal-prep containers, talking to a custom backend over HTTP."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -10,7 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.1.1
-  supabase_flutter: ^2.5.6
+  http: ^1.2.2
+  # Stores the connected backend's URL + passphrase - see
+  # lib/services/backend_connection.dart.
+  flutter_secure_storage: ^11.2.0
   # >=13.0.0: 8.x's Android AAR is compiled against API 34, which conflicts
   # with flutter_plugin_android_lifecycle's compileSdk>=36 requirement
   # (AAR metadata check failure) once compileSdk climbs that high - see the
@@ -23,6 +26,9 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.3
+  # Lets tests swap in an in-memory FlutterSecureStoragePlatform instead of
+  # hitting a real platform channel - see test/services/backend_connection_test.dart.
+  flutter_secure_storage_platform_interface: ^2.1.1
 
 flutter:
   uses-material-design: true

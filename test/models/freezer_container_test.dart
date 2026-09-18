@@ -8,7 +8,7 @@ void main() {
   group('FreezerContainer.fromRow', () {
     test('parses a row shaped like a real jsonDecode()d PostgREST response',
         () {
-      // Mirrors exactly what supabase_flutter hands back: the whole
+      // Mirrors exactly what the backend hands back: the whole
       // response body goes through dart:convert's jsonDecode, so nested
       // "objects" are genuinely Map<String, dynamic> - not a hand-built
       // Dart literal map, which could hide a type-check mistake in

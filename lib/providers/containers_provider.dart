@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/container_status.dart';
 import '../models/freezer_container.dart';
 import '../models/ingredient.dart';
+import '../services/backend_connection.dart';
 import '../services/container_service.dart';
 import '../utils/container_summary.dart';
 
@@ -15,8 +16,10 @@ import '../utils/container_summary.dart';
 /// than each issuing their own request, keeping server round-trips to one
 /// fetch per write instead of one per screen/filter change.
 class ContainersProvider with ChangeNotifier {
-  ContainersProvider({ContainerService? service})
-      : _service = service ?? ContainerService();
+  ContainersProvider({
+    required BackendConnection connection,
+    ContainerService? service,
+  }) : _service = service ?? ContainerService(connection: connection);
 
   final ContainerService _service;
 

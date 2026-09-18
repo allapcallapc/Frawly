@@ -10,9 +10,9 @@ name: Deploy to GitHub Pages
 # /main/ and /pr-<n>/ published by deploy-main.yml and
 # deploy-pr-preview.yml - see those for the preview-environment setup.
 #
-# Note: until env/prod.json has a real Supabase project (see CLAUDE.md's
-# "Backend hosting" section), this deploys successfully but the app itself
-# fails fast at startup with a "Missing Supabase config" error.
+# Note: until env/prod.json's BACKEND_URL points at a deployed frawly-api
+# Worker (see backend/README.md), this deploys successfully but the app
+# itself just shows a blank connect screen with no pre-filled URL.
 on:
   release:
     types: [published]
@@ -60,7 +60,7 @@ jobs:
           tag: ${{ github.event.release.tag_name }}
 
       - name: Build web app
-        # SupabaseConfig has no built-in default (see its doc comment) -
+        # BackendConfig has no built-in default (see its doc comment) -
         # every build, including this one, must pass these explicitly.
         run: |
           flutter build web --base-href "/${{ github.event.repository.name }}/" \

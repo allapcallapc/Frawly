@@ -1,27 +1,47 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 
 import '../models/container_status.dart';
 import '../models/freezer_container.dart';
 import '../models/ingredient.dart';
 import '../utils/date_utils.dart';
+import 'backend_connection.dart';
 import 'container_service_exceptions.dart';
 
-/// Everything that talks to Supabase. Every write here is a single
-/// PostgREST request (PostgREST wraps one request in one transaction), so
-/// bulk operations are atomic without needing an RPC - see CLAUDE.md's
-/// "avoid RPCs" section. The one exception is [importAll], which really
-/// does need a transaction spanning "delete everything, then insert this"
-/// and calls the `import_containers` database function for it.
+/// Everything that talks to the Frawly backend (a Cloudflare Worker - see
+/// backend/README.md). The app never talks to a database directly; every
+/// operation here is a single HTTP request, and every bulk write
+/// (createFilling/emptyContainers/importAll) is atomic on the backend side
+/// (a single SQL statement, or a D1 batch() transaction for import) - see
+/// backend/src/index.ts for the implementation this mirrors.
 class ContainerService {
-  ContainerService({SupabaseClient? client})
-      : _client = client ?? Supabase.instance.client;
+  // The field is private but the named constructor param intentionally
+  // isn't, so callers write `ContainerService(connection: ...)` rather
+  // than the unspellable `ContainerService(_connection: ...)` an
+  // initializing formal would require.
+  ContainerService({required BackendConnection connection, http.Client? httpClient})
+      // ignore: prefer_initializing_formals
+      : _connection = connection,
+        _httpClient = httpClient ?? http.Client();
 
-  final SupabaseClient _client;
+  final BackendConnection _connection;
+  final http.Client _httpClient;
 
-  static const int maxRangeSize = 500;
-  static final RegExp _idPattern = RegExp(r'^[A-Za-z0-9]+-[0-9]+$');
+  Uri _uri(String path, [Map<String, String>? query]) =>
+      Uri.parse('${_connection.url}$path').replace(queryParameters: query);
 
-  PostgrestQueryBuilder get _table => _client.from('containers');
+  Map<String, String> get _headers => _connection.authHeaders;
+
+  String _errorMessage(http.Response response, String fallback) {
+    try {
+      final body = jsonDecode(response.body);
+      if (body is Map && body['error'] is String) return body['error'] as String;
+    } catch (_) {
+      // Not JSON - fall through to the generic message.
+    }
+    return fallback;
+  }
 
   /// Lists containers, optionally filtered by [status] and/or a text
   /// [search] on id, sorted by date ascending (vacant/null dates first).
@@ -29,95 +49,98 @@ class ContainerService {
     ContainerStatus? status,
     String? search,
   }) async {
-    var query = _table.select();
-    if (status != null) {
-      query = query.eq('status', status.value);
-    }
+    final query = <String, String>{};
+    if (status != null) query['status'] = status.value;
     final trimmedSearch = search?.trim() ?? '';
-    if (trimmedSearch.isNotEmpty) {
-      query = query.ilike('id', '%$trimmedSearch%');
+    if (trimmedSearch.isNotEmpty) query['search'] = trimmedSearch;
+
+    final response =
+        await _httpClient.get(_uri('/containers', query), headers: _headers);
+    if (response.statusCode != 200) {
+      throw StateError(_errorMessage(response, 'Could not load containers.'));
     }
-    final rows = await query
-        .order('date', ascending: true, nullsFirst: true)
-        .order('id', ascending: true);
-    return rows.map(FreezerContainer.fromRow).toList();
+    final rows = jsonDecode(response.body) as List<dynamic>;
+    return rows
+        .map((row) => FreezerContainer.fromRow(row as Map<String, dynamic>))
+        .toList();
   }
 
   /// A single container, or null if [id] isn't registered.
   Future<FreezerContainer?> getById(String id) async {
-    final row = await _table.select().eq('id', id).maybeSingle();
-    return row == null ? null : FreezerContainer.fromRow(row);
+    final response =
+        await _httpClient.get(_uri('/containers/$id'), headers: _headers);
+    if (response.statusCode == 404) return null;
+    if (response.statusCode != 200) {
+      throw StateError(_errorMessage(response, 'Could not load $id.'));
+    }
+    return FreezerContainer.fromRow(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
   }
 
   /// The full registry - every registered container, with its current
-  /// date/status/ingredients. Sorted by prefix then by the numeric part of
-  /// the id (so "P-2" sorts before "P-10", unlike a plain text sort) - this
-  /// is what the New filling/Empty containers checkbox selectors and the
-  /// Manage containers screen list against.
+  /// date/status/ingredients, sorted by prefix then the numeric part of
+  /// the id. This is what the New filling/Empty containers checkbox
+  /// selectors and the Manage containers screen list against.
   Future<List<FreezerContainer>> getRegistry() async {
-    final rows = await _table.select().order('id', ascending: true);
-    final containers = rows.map(FreezerContainer.fromRow).toList();
-    containers.sort((a, b) {
-      final prefixCompare = a.prefix.compareTo(b.prefix);
-      if (prefixCompare != 0) return prefixCompare;
-      return _numericSuffix(a.id).compareTo(_numericSuffix(b.id));
-    });
-    return containers;
-  }
-
-  static int _numericSuffix(String id) {
-    final match = RegExp(r'-(\d+)$').firstMatch(id);
-    return match == null ? 0 : int.parse(match.group(1)!);
+    final response =
+        await _httpClient.get(_uri('/containers/registry'), headers: _headers);
+    if (response.statusCode != 200) {
+      throw StateError(_errorMessage(response, 'Could not load the registry.'));
+    }
+    final rows = jsonDecode(response.body) as List<dynamic>;
+    return rows
+        .map((row) => FreezerContainer.fromRow(row as Map<String, dynamic>))
+        .toList();
   }
 
   /// Adds a single id to the registry. Throws
   /// [ContainerIdAlreadyExistsException] if it's already registered.
   Future<void> addId(String id) async {
-    try {
-      await _table.insert({'id': id});
-    } on PostgrestException catch (e) {
-      if (e.code == '23505') {
-        throw ContainerIdAlreadyExistsException(id);
-      }
-      rethrow;
+    final response = await _httpClient.post(
+      _uri('/containers'),
+      headers: _headers,
+      body: jsonEncode({'id': id}),
+    );
+    if (response.statusCode == 409) {
+      throw ContainerIdAlreadyExistsException(id);
+    }
+    if (response.statusCode != 201) {
+      throw StateError(_errorMessage(response, 'Could not add $id.'));
     }
   }
 
-  /// Adds every "`<prefix>-<n>`" for n in [from]..[to] (inclusive) that isn't
-  /// already registered - existing ids are skipped, not rejected. Returns
-  /// the ids that were actually added. Throws [InvalidRangeException] if
-  /// the range is empty, backwards, or larger than [maxRangeSize].
+  /// Adds every "`<prefix>-<n>`" for n in [from]..[to] (inclusive) that
+  /// isn't already registered - existing ids are skipped, not rejected.
+  /// Returns the ids that were actually added. Throws
+  /// [InvalidRangeException] if the range is invalid or too large.
   Future<List<String>> addRange({
     required String prefix,
     required int from,
     required int to,
   }) async {
-    if (prefix.trim().isEmpty) {
-      throw InvalidRangeException('Prefix must not be empty.');
+    final response = await _httpClient.post(
+      _uri('/containers/range'),
+      headers: _headers,
+      body: jsonEncode({'prefix': prefix, 'from': from, 'to': to}),
+    );
+    if (response.statusCode == 400) {
+      throw InvalidRangeException(_errorMessage(response, 'Invalid range.'));
     }
-    if (to < from) {
-      throw InvalidRangeException('Range end must not be before its start.');
+    if (response.statusCode != 200) {
+      throw StateError(_errorMessage(response, 'Could not add the range.'));
     }
-    final count = to - from + 1;
-    if (count > maxRangeSize) {
-      throw InvalidRangeException(
-        'Range is too large ($count ids) - the limit is $maxRangeSize.',
-      );
-    }
-    final ids = [for (var n = from; n <= to; n++) '$prefix-$n'];
-    final inserted = await _table
-        .upsert(
-          [for (final id in ids) {'id': id}],
-          onConflict: 'id',
-          ignoreDuplicates: true,
-        )
-        .select('id');
-    return inserted.map((row) => row['id'] as String).toList();
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    return (body['added'] as List<dynamic>).cast<String>();
   }
 
   /// Removes [id] from the registry, deleting its stored data with it.
   Future<void> removeId(String id) async {
-    await _table.delete().eq('id', id);
+    final response =
+        await _httpClient.delete(_uri('/containers/$id'), headers: _headers);
+    if (response.statusCode != 204) {
+      throw StateError(_errorMessage(response, 'Could not remove $id.'));
+    }
   }
 
   /// Overwrites every target container's date/status/ingredients in one
@@ -132,31 +155,38 @@ class ContainerService {
     if (targetIds.isEmpty) {
       throw ArgumentError('createFilling needs at least one target id.');
     }
-    final existingRows =
-        await _table.select('id').inFilter('id', targetIds);
-    final existingIds = existingRows.map((r) => r['id'] as String).toSet();
-    final missing = targetIds.toSet().difference(existingIds);
-    if (missing.isNotEmpty) {
-      throw ContainersNotFoundException(missing);
+    final response = await _httpClient.post(
+      _uri('/fillings'),
+      headers: _headers,
+      body: jsonEncode({
+        'date': date == null ? null : formatDateKey(date),
+        'status': status.value,
+        'ingredients': ingredients.map((i) => i.toJson()).toList(),
+        'targetIds': targetIds,
+      }),
+    );
+    if (response.statusCode == 404) {
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final missing = (body['missing'] as List<dynamic>).cast<String>();
+      throw ContainersNotFoundException(missing.toSet());
     }
-    await _table.update({
-      'date': date == null ? null : formatDateKey(date),
-      'status': status.value,
-      'ingredients': _sanitizeIngredients(ingredients)
-          .map((i) => i.toJson())
-          .toList(),
-    }).inFilter('id', targetIds);
+    if (response.statusCode != 200) {
+      throw StateError(_errorMessage(response, 'Could not save the filling.'));
+    }
   }
 
   /// Resets every one of [ids] to vacant/null date/no ingredients, in one
   /// atomic write.
   Future<void> emptyContainers(List<String> ids) async {
     if (ids.isEmpty) return;
-    await _table.update({
-      'date': null,
-      'status': ContainerStatus.vacant.value,
-      'ingredients': const [],
-    }).inFilter('id', ids);
+    final response = await _httpClient.post(
+      _uri('/containers/empty'),
+      headers: _headers,
+      body: jsonEncode({'ids': ids}),
+    );
+    if (response.statusCode != 200) {
+      throw StateError(_errorMessage(response, 'Could not empty containers.'));
+    }
   }
 
   /// Updates a single container's date/status/ingredients (not part of a
@@ -167,33 +197,31 @@ class ContainerService {
     required ContainerStatus status,
     required List<Ingredient> ingredients,
   }) async {
-    final row = await _table.update({
-      'date': date == null ? null : formatDateKey(date),
-      'status': status.value,
-      'ingredients': _sanitizeIngredients(ingredients)
-          .map((i) => i.toJson())
-          .toList(),
-    }).eq('id', id).select().single();
-    return FreezerContainer.fromRow(row);
+    final response = await _httpClient.patch(
+      _uri('/containers/$id'),
+      headers: _headers,
+      body: jsonEncode({
+        'date': date == null ? null : formatDateKey(date),
+        'status': status.value,
+        'ingredients': ingredients.map((i) => i.toJson()).toList(),
+      }),
+    );
+    if (response.statusCode != 200) {
+      throw StateError(_errorMessage(response, 'Could not save $id.'));
+    }
+    return FreezerContainer.fromRow(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
   }
 
   /// The full registry + all container data as one JSON-serializable
   /// document, for [importAll]/file export.
   Future<Map<String, dynamic>> exportAll() async {
-    final containers = await getRegistry();
-    return {
-      'version': 1,
-      'exportedAt': DateTime.now().toUtc().toIso8601String(),
-      'containers': [
-        for (final c in containers)
-          {
-            'id': c.id,
-            'date': c.date == null ? null : formatDateKey(c.date!),
-            'status': c.status.value,
-            'ingredients': c.ingredients.map((i) => i.toJson()).toList(),
-          },
-      ],
-    };
+    final response = await _httpClient.get(_uri('/export'), headers: _headers);
+    if (response.statusCode != 200) {
+      throw StateError(_errorMessage(response, 'Could not export data.'));
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
   /// Replaces all current data with [document] (the shape [exportAll()]
@@ -202,81 +230,18 @@ class ContainerService {
   /// [InvalidImportDataException] (without writing anything) if it's
   /// invalid.
   Future<void> importAll(Map<String, dynamic> document) async {
-    final rawContainers = document['containers'];
-    if (rawContainers is! List) {
-      throw InvalidImportDataException('Missing or invalid "containers" list.');
+    final response = await _httpClient.post(
+      _uri('/import'),
+      headers: _headers,
+      body: jsonEncode(document),
+    );
+    if (response.statusCode == 400) {
+      throw InvalidImportDataException(
+        _errorMessage(response, 'Invalid import file.'),
+      );
     }
-    final validated = <Map<String, dynamic>>[];
-    final seenIds = <String>{};
-    for (var i = 0; i < rawContainers.length; i++) {
-      final entry = rawContainers[i];
-      if (entry is! Map) {
-        throw InvalidImportDataException('containers[$i] is not an object.');
-      }
-      final id = entry['id'];
-      if (id is! String || !_idPattern.hasMatch(id)) {
-        throw InvalidImportDataException(
-          'containers[$i].id must look like "Prefix-Number".',
-        );
-      }
-      if (!seenIds.add(id)) {
-        throw InvalidImportDataException('Duplicate id "$id" in import file.');
-      }
-      final rawDate = entry['date'];
-      if (rawDate != null && rawDate is! String) {
-        throw InvalidImportDataException('containers[$i].date must be a string or null.');
-      }
-      if (rawDate is String) {
-        try {
-          DateTime.parse(rawDate);
-        } on FormatException {
-          throw InvalidImportDataException('containers[$i].date is not a valid date.');
-        }
-      }
-      final rawStatus = entry['status'];
-      if (rawStatus is! String) {
-        throw InvalidImportDataException('containers[$i].status is missing.');
-      }
-      try {
-        ContainerStatus.fromValue(rawStatus);
-      } on ArgumentError {
-        throw InvalidImportDataException(
-          'containers[$i].status "$rawStatus" is not one of vacant/frozen/construction.',
-        );
-      }
-      final rawIngredients = entry['ingredients'];
-      if (rawIngredients != null && rawIngredients is! List) {
-        throw InvalidImportDataException('containers[$i].ingredients must be a list.');
-      }
-      final ingredients = <Map<String, dynamic>>[];
-      if (rawIngredients is List) {
-        for (final rawIngredient in rawIngredients) {
-          if (rawIngredient is! Map) {
-            throw InvalidImportDataException(
-              'containers[$i].ingredients entries must be objects.',
-            );
-          }
-          final name = rawIngredient['name'];
-          if (name is String && name.trim().isNotEmpty) {
-            ingredients.add({
-              'name': name,
-              'quantity': rawIngredient['quantity'] as String? ?? '',
-            });
-          }
-          // Empty-name ingredient rows are dropped silently, same as any
-          // other write - see CLAUDE.md/the backend spec.
-        }
-      }
-      validated.add({
-        'id': id,
-        'date': rawDate,
-        'status': rawStatus,
-        'ingredients': ingredients,
-      });
+    if (response.statusCode != 200) {
+      throw StateError(_errorMessage(response, 'Could not import data.'));
     }
-    await _client.rpc('import_containers', params: {'payload': validated});
   }
-
-  static List<Ingredient> _sanitizeIngredients(List<Ingredient> ingredients) =>
-      ingredients.where((i) => i.hasName).toList();
 }

@@ -1,0 +1,40 @@
+# Cloudflare Worker + D1 config. Two named environments (staging/production)
+# mirror SplitBalance's two-Supabase-project split - separate D1 databases,
+# separate Worker deployments, so PR/main previews never touch production
+# data. Local dev (`npm run dev`, no --env flag) uses the top-level config
+# below with `--local` D1 (a local SQLite file, not a real database) - the
+# placeholder database_id there is never actually used by `--local` mode,
+# only by `--remote`.
+#
+# Setup once you have a Cloudflare account (see backend/README.md):
+#   wrangler d1 create frawly-db-staging
+#   wrangler d1 create frawly-db-production
+# then paste the returned database_id values into the two [env.*] sections
+# below, and set the shared-passphrase secret for each:
+#   wrangler secret put API_PASSPHRASE --env staging
+#   wrangler secret put API_PASSPHRASE --env production
+name = "frawly-api"
+main = "src/index.ts"
+compatibility_date = "2026-09-18"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "frawly-db-local"
+database_id = "local-dev-unused-by-wrangler-local-mode"
+
+[env.staging]
+name = "frawly-api-staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "frawly-db-staging"
+database_id = "REPLACE_WITH_STAGING_D1_DATABASE_ID"
+
+[env.production]
+name = "frawly-api-production"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "frawly-db-production"
+database_id = "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID"

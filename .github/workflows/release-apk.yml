@@ -79,7 +79,7 @@ jobs:
           EOF
 
       - name: Build release APK
-        # SupabaseConfig has no built-in default (see its doc comment) -
+        # BackendConfig has no built-in default (see its doc comment) -
         # every build, including this one, must pass these explicitly.
         run: |
           flutter build apk --release \
