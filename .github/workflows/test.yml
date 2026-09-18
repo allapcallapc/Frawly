@@ -92,17 +92,19 @@ jobs:
 
       - name: Export local Supabase connection details
         id: supabase
+        # `supabase status -o json` on current CLI versions no longer
+        # includes ANON_KEY/SERVICE_ROLE_KEY at all (confirmed by printing
+        # its key list here on a run that failed trying to jq them out -
+        # only API_URL/DB_URL/etc are present) - so this uses the fixed
+        # local-dev defaults directly instead of parsing them out of CLI
+        # output that keeps changing shape. Both are safe, publicly
+        # documented, non-secret defaults for `supabase start` (see
+        # env/local.json, which uses the same anon key) - config.toml
+        # doesn't override the local jwt_secret, so they're stable here.
         run: |
-          status=$(supabase status -o json)
-          echo "Available \`supabase status -o json\` keys: $(echo "$status" | jq -r 'keys | join(", ")')"
-          url=$(echo "$status" | jq -r '.API_URL // .api_url // empty')
-          key=$(echo "$status" | jq -r '.SERVICE_ROLE_KEY // .service_role_key // .SECRET_KEY // .secret_key // empty')
-          if [ -z "$url" ] || [ -z "$key" ]; then
-            echo "::error::Could not find URL/admin key in \`supabase status -o json\` output - see the key list printed above and update the jq filters in this step."
-            exit 1
-          fi
-          echo "url=$url" >> "$GITHUB_OUTPUT"
-          echo "service_role_key=$key" >> "$GITHUB_OUTPUT"
+          echo "Available \`supabase status -o json\` keys: $(supabase status -o json | jq -r 'keys | join(", ")')"
+          echo "url=http://127.0.0.1:54321" >> "$GITHUB_OUTPUT"
+          echo "service_role_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU" >> "$GITHUB_OUTPUT"
 
       - name: Run integration tests
         env:

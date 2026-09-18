@@ -124,12 +124,13 @@ class _ManageContainersScreenState extends State<ManageContainersScreen> {
       final bytes = Uint8List.fromList(
         utf8.encode(const JsonEncoder.withIndent('  ').convert(document)),
       );
-      await FilePicker.platform.saveFile(
+      await FilePicker.saveFile(
         dialogTitle: 'Export Freezer Log data',
         fileName: 'freezer-log-export-${formatDateKey(DateTime.now())}.json',
+        bytes: bytes,
+        mimeType: 'application/json',
         type: FileType.custom,
         allowedExtensions: const ['json'],
-        bytes: bytes,
       );
       _showSnack('Exported.');
     } catch (e) {
@@ -140,16 +141,17 @@ class _ManageContainersScreenState extends State<ManageContainersScreen> {
   }
 
   Future<void> _import() async {
-    final result = await FilePicker.platform.pickFiles(
+    final files = await FilePicker.pickFiles(
       dialogTitle: 'Import Freezer Log data',
       type: FileType.custom,
       allowedExtensions: const ['json'],
-      withData: true,
     );
-    if (result == null || result.files.isEmpty) return;
-    final fileBytes = result.files.single.bytes;
-    if (fileBytes == null) {
-      _showSnack('Could not read the selected file.');
+    if (files.isEmpty) return;
+    final Uint8List fileBytes;
+    try {
+      fileBytes = await files.single.readAsBytes();
+    } catch (e) {
+      _showSnack('Could not read the selected file: $e');
       return;
     }
     if (!mounted) return;
