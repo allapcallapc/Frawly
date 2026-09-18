@@ -14,7 +14,12 @@
 create or replace function import_containers(payload jsonb) returns void
 language plpgsql as $$
 begin
-  delete from containers;
+  -- `where true` is not a no-op here: the local Supabase dev stack
+  -- preloads the safeupdate extension, which rejects any DELETE/UPDATE
+  -- with no WHERE clause at all ("DELETE requires a WHERE clause") even
+  -- from inside a function body - a bare `delete from containers;` fails
+  -- integration tests with exactly that error.
+  delete from containers where true;
   insert into containers (id, date, status, ingredients)
   select
     row->>'id',
