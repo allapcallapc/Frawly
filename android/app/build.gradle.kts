@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    jacoco
 }
 
 import java.io.FileInputStream
@@ -65,4 +66,40 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+// There's no Kotlin/Java code here beyond the stock MainActivity, so this
+// mostly generates an empty-but-valid XML report - but it keeps test.yml's
+// Codecov upload step working uniformly (same shape as SplitBalance's own
+// jacocoTestReport task) rather than needing a special case for "no Kotlin
+// tests yet". See SplitBalance's android/app/build.gradle.kts for the
+// original, more detailed rationale.
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    group = "verification"
+    description = "Generates an XML coverage report for testDebugUnitTest, for Codecov."
+
+    reports {
+        xml.required.set(true)
+        html.required.set(false)
+        csv.required.set(false)
+    }
+
+    val excludes = listOf(
+        "**/R.class", "**/R\$*.class", "**/BuildConfig.*", "**/Manifest*.*"
+    )
+    classDirectories.setFrom(
+        files(
+            fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) { exclude(excludes) },
+            fileTree(layout.buildDirectory.dir("intermediates/javac/debug/classes")) { exclude(excludes) }
+        )
+    )
+    sourceDirectories.setFrom(files("src/main/kotlin", "src/main/java"))
+    executionData.setFrom(
+        fileTree(layout.buildDirectory) { include("jacoco/testDebugUnitTest.exec") }
+    )
 }
