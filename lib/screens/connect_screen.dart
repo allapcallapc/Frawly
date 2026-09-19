@@ -86,11 +86,23 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   ),
                   const SizedBox(height: 24),
                   // AutofillGroup + autofillHints is what makes Flutter web
-                  // expose these as recognizable url/password fields to the
-                  // browser's own autofill and to password-manager
-                  // extensions (Bitwarden, 1Password, etc.) that hook into
-                  // it - without both, Flutter's canvas-rendered fields are
+                  // expose these as recognizable fields to the browser's
+                  // own autofill and to password-manager apps/extensions
+                  // (Bitwarden, 1Password, etc.) that hook into it -
+                  // without both, Flutter's canvas-rendered fields are
                   // otherwise invisible to them.
+                  //
+                  // The URL field uses AutofillHints.username, not .url:
+                  // credential-pair autofill (what actually offers to fill
+                  // both fields from one saved item) matches a
+                  // username-shaped field next to a password field -
+                  // AutofillHints.url tags a field as "a website" instead,
+                  // which Android's Autofill Framework (what Bitwarden's
+                  // mobile app/Chrome-on-mobile use, unlike the more
+                  // heuristic desktop browser extension) doesn't treat as
+                  // part of a login pair, so it never offered to fill it.
+                  // The saved item's "username" is simply the backend URL
+                  // here, matching this app's single-passphrase model.
                   AutofillGroup(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -98,7 +110,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                         TextField(
                           controller: _urlController,
                           keyboardType: TextInputType.url,
-                          autofillHints: const [AutofillHints.url],
+                          autofillHints: const [AutofillHints.username],
                           decoration: const InputDecoration(
                             labelText: 'Backend URL',
                             hintText: 'https://frawly-api.example.workers.dev',
