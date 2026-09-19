@@ -53,8 +53,10 @@ pnpm run migrate:production
 ```
 
 Then add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as two more
-GitHub repo secrets so `backend-deploy.yml` can deploy automatically
-(staging on every push to main, production on every published release).
+GitHub repo secrets so `backend-deploy.yml` can deploy automatically:
+staging on every push to main AND on every PR touching `backend/**` (so a
+migration/deploy problem shows up on the PR itself, not only after
+merging), production on every published release.
 
 ## Local development
 

@@ -97,7 +97,7 @@ app.post("/containers/empty", async (c) => {
   const uniqueIds = [...new Set(ids as string[])];
   const placeholders = uniqueIds.map(() => "?").join(", ");
   await c.env.DB.prepare(
-    `update containers set date = null, status = 'vacant', ingredients = '[]' where id in (${placeholders})`,
+    `update containers set date = null, status = 'vacant', ingredients = '[]', updated_at = datetime('now') where id in (${placeholders})`,
   )
     .bind(...uniqueIds)
     .run();
@@ -174,7 +174,7 @@ app.patch("/containers/:id", async (c) => {
   const ingredients = sanitizeIngredients(body?.ingredients);
 
   const row = await c.env.DB.prepare(
-    `update containers set date = ?, status = ?, ingredients = ? where id = ?
+    `update containers set date = ?, status = ?, ingredients = ?, updated_at = datetime('now') where id = ?
      returning ${LIST_COLUMNS}`,
   )
     .bind(body.date ?? null, body.status, JSON.stringify(ingredients), id)
@@ -234,7 +234,7 @@ app.post("/fillings", async (c) => {
   // PostgREST-based backend had, just via our own SQL now instead of a
   // client-side PostgREST request.
   await c.env.DB.prepare(
-    `update containers set date = ?, status = ?, ingredients = ? where id in (${placeholders})`,
+    `update containers set date = ?, status = ?, ingredients = ?, updated_at = datetime('now') where id in (${placeholders})`,
   )
     .bind(body.date ?? null, body.status, JSON.stringify(ingredients), ...uniqueIds)
     .run();

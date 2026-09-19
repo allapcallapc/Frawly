@@ -2,17 +2,27 @@ name: Backend Deploy
 
 # Two named Cloudflare environments (staging/production - see
 # backend/wrangler.toml.example), same split as the Flutter app's env/staging.json
-# vs env/prod.json. Staging redeploys continuously from main (mirroring
-# deploy-main.yml's web preview); production only deploys on a published
-# release, keeping the backend's version in lockstep with the app's.
+# vs env/prod.json. Staging redeploys on every push to main AND on every PR
+# that touches backend/** (so a migration/deploy problem surfaces on the PR
+# itself, against the real Cloudflare account, instead of only after
+# merging - see the incident that motivated this: PR #1 merged clean in CI
+# because --local migrations can't catch a bug that only exists in D1's
+# --remote path). Production only deploys on a published release, keeping
+# the backend's version in lockstep with the app's.
 #
 # Needs four repo secrets once a Cloudflare account exists (see
 # backend/README.md): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,
 # D1_STAGING_DATABASE_ID, D1_PRODUCTION_DATABASE_ID. The D1_* secrets are
 # templated into wrangler.toml below rather than committed - see
-# backend/wrangler.toml.example's comment for why.
+# backend/wrangler.toml.example's comment for why. Safe to expose to the
+# pull_request trigger below since this repo has no external/fork
+# contributors - GitHub withholds secrets from pull_request runs
+# triggered by forks regardless.
 on:
   push:
+    branches: [main]
+    paths: ['backend/**', '.github/workflows/backend-deploy.yml']
+  pull_request:
     branches: [main]
     paths: ['backend/**', '.github/workflows/backend-deploy.yml']
   release:
@@ -27,7 +37,7 @@ jobs:
     uses: ./.github/workflows/backend-test.yml
 
   deploy-staging:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     needs: test
     runs-on: ubuntu-latest
     environment:

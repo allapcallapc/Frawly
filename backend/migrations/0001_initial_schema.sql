@@ -24,9 +24,10 @@ create index containers_status_idx on containers (status);
 create index containers_prefix_idx on containers (prefix);
 create index containers_date_idx on containers (date);
 
-create trigger containers_set_updated_at
-  after update on containers
-  for each row
-  begin
-    update containers set updated_at = datetime('now') where id = new.id;
-  end;
+-- No AFTER UPDATE trigger to bump updated_at: D1's remote migration path
+-- has a series of known bugs mis-splitting CREATE TRIGGER ... BEGIN ... END
+-- bodies (case-sensitive BEGIN matching, LF-only line endings when the
+-- trigger is a migration's last statement - see
+-- https://github.com/cloudflare/workers-sdk/issues/15314 and #15690,
+-- both still open as of this schema). updated_at is bumped explicitly by
+-- every UPDATE statement in src/index.ts instead.
