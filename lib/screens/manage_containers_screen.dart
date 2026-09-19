@@ -302,7 +302,15 @@ class _ManageContainersScreenState extends State<ManageContainersScreen> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
-              if (!provider.hasAnyContainers)
+              if (provider.error != null && !provider.hasLoadedOnce)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Could not load containers.\n${provider.error}',
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                )
+              else if (!provider.hasAnyContainers)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
                   child: Text('No containers yet.'),
