@@ -1,0 +1,45 @@
+name: MCP Server Test
+
+# The MCP server is a separate Node/TypeScript project from both the
+# Flutter app and the backend Worker (see mcp-server/README.md) - it only
+# talks to the backend over the same REST API the Flutter app uses, so it
+# gets its own workflow rather than folding into test.yml or
+# backend-test.yml.
+on:
+  push:
+    branches: [ '*' ]
+    paths: ['mcp-server/**', '.github/workflows/mcp-server-test.yml']
+  pull_request:
+    branches: [ '*' ]
+    paths: ['mcp-server/**', '.github/workflows/mcp-server-test.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp-server
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Get dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm run build
