@@ -46,8 +46,12 @@ class ContainersProvider with ChangeNotifier {
     try {
       _containers = await _service.getRegistry();
       _hasLoadedOnce = true;
-    } catch (e) {
+    } catch (e, st) {
       _error = e;
+      // Every screen but home_screen.dart ignores `error` and just renders
+      // an empty list, which looks identical to "no containers" - this is
+      // the only trace a failed load leaves for anyone looking at devtools.
+      debugPrint('ContainersProvider.load() failed: $e\n$st');
     } finally {
       _isLoading = false;
       notifyListeners();
