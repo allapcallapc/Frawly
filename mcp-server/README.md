@@ -5,43 +5,77 @@ backend (see `../backend/README.md`) as tools for an LLM client (Claude
 Desktop, Claude Code, etc.) - "list the vacant containers", "fill P-3
 through P-6 with the chili I made today", and so on.
 
-Like the Flutter app, this only ever speaks HTTP to the Worker
-(`src/client.ts` mirrors `../lib/services/container_service.dart`) - it has
-no direct D1/Cloudflare access and no separate credentials. `importAll`
-(the full-registry replace `POST /import` uses) is deliberately not
-exposed as a tool: it wipes every container, which is more destructive
-than seems reasonable to hand an LLM client by default.
+It's a Cloudflare Worker, same as `../backend/` - deployed once, reachable
+by URL, no local process to keep running. Like the Flutter app, it only
+ever speaks HTTP to the backend Worker (`src/client.ts` mirrors
+`../lib/services/container_service.dart`) - it has no direct D1/Cloudflare
+access of its own. `POST /import` (the full-registry replace) is
+deliberately not exposed as a tool: it wipes every container, which is
+more destructive than seems reasonable to hand an LLM client by default.
 
-## Setup
+## Auth
+
+There's no separate secret for this Worker. The passphrase you configure
+your MCP client with (the same one you'd enter on the app's connect
+screen) is forwarded as-is on every backend request this session makes -
+the Worker itself never stores or validates it. A wrong passphrase
+surfaces as a normal 401 from the backend, turned into an MCP tool error.
+
+## One-time deploy setup
 
 ```
 cd mcp-server
 pnpm install
-pnpm run build
 ```
 
-Add it to your MCP client's config, pointing `FRAWLY_BACKEND_URL` /
-`FRAWLY_PASSPHRASE` at the same backend + passphrase you'd enter on the
-app's connect screen. For Claude Code / Claude Desktop
-(`claude_desktop_config.json` or `.mcp.json`):
+`wrangler.toml` needs one thing per environment: the backend Worker's URL
+(not secret, just deployment-specific - see its own comment for why this
+one isn't gitignored the way `../backend/wrangler.toml` is).
+
+- **Local dev**: already points at `http://localhost:8787` (`wrangler
+  dev`'s default, matching `../backend/README.md`'s local setup).
+- **Staging/production**: once `../backend` has been deployed to that
+  environment, replace `REPLACE_WITH_STAGING_BACKEND_URL` /
+  `REPLACE_WITH_PRODUCTION_BACKEND_URL` in `wrangler.toml` with the real
+  `*.workers.dev` URL, then:
+
+  ```
+  pnpm run deploy:staging
+  pnpm run deploy:production
+  ```
+
+  CI (`.github/workflows/mcp-server-deploy.yml`) does this automatically
+  instead, from two repo **variables** (not secrets, since the URL isn't
+  sensitive) - `MCP_STAGING_BACKEND_URL` / `MCP_PRODUCTION_BACKEND_URL`
+  (Settings > Secrets and variables > Actions > Variables) - reusing the
+  same `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` repo secrets
+  `../backend` already needs.
+
+## Adding it to your MCP client
+
+Once deployed, point your client at `https://<worker-url>/mcp` with the
+passphrase as a bearer token. For Claude Code:
+
+```
+claude mcp add --transport http frawly https://frawly-mcp-staging.<your-subdomain>.workers.dev/mcp \
+  --header "Authorization: Bearer <your passphrase>"
+```
+
+For Claude Desktop (`claude_desktop_config.json`) or `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "frawly": {
-      "command": "node",
-      "args": ["/absolute/path/to/Frawly/mcp-server/dist/index.js"],
-      "env": {
-        "FRAWLY_BACKEND_URL": "https://frawly-api-staging.<your-subdomain>.workers.dev",
-        "FRAWLY_PASSPHRASE": "<your passphrase>"
-      }
+      "url": "https://frawly-mcp-staging.<your-subdomain>.workers.dev/mcp",
+      "headers": { "Authorization": "Bearer <your passphrase>" }
     }
   }
 }
 ```
 
-The server checks `GET /health` against these on startup and exits with an
-error if the backend isn't reachable - same check the connect screen does.
+`GET /health` (no auth needed) is there to sanity-check the deployment
+itself is reachable, same check the connect screen and backend both use.
 
 ## Tools
 
@@ -61,15 +95,19 @@ error if the backend isn't reachable - same check the connect screen does.
 ## Local development
 
 ```
-pnpm run dev       # runs src/index.ts directly via tsx
-pnpm test          # vitest - client.test.ts mocks fetch; tools.test.ts
-                    # drives the real MCP Client/Server over an in-memory
-                    # transport, so it exercises the actual tools/call
-                    # JSON-RPC round trip and zod input validation
+pnpm run dev        # wrangler dev on http://localhost:8787 by default (see wrangler.toml)
+pnpm test           # vitest - client.test.ts mocks fetch; tools.test.ts drives a
+                     # real MCP Client/Server over an in-memory transport; worker.test.ts
+                     # drives a real MCP Client + StreamableHTTPClientTransport straight
+                     # into the Worker's fetch handler (auth gate, routing, HTTP framing)
 pnpm run typecheck
 ```
 
-To smoke-test against a real backend, run `../backend`'s local dev server
-(`cd ../backend && pnpm run dev`) and point `FRAWLY_BACKEND_URL` at
-`http://localhost:8787` with `FRAWLY_PASSPHRASE` set to whatever
-`../backend/.dev.vars` has.
+`pnpm run dev` starts the *real* Workers runtime (workerd via `wrangler
+dev`), not a Node polyfill - worth testing against directly before
+deploying, since some runtime behavior only shows up there (e.g.
+Cloudflare's `fetch` throws if called detached from `globalThis`, which
+Node's `fetch` happily allows - `src/client.ts` binds it explicitly for
+exactly this reason). Point it at `../backend`'s own local dev server
+(`cd ../backend && pnpm run dev`) running at the default
+`http://localhost:8787`.

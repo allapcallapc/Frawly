@@ -4,14 +4,12 @@
     "lib": ["ES2022"],
     "module": "ES2022",
     "moduleResolution": "Bundler",
-    "outDir": "dist",
-    "types": ["node"],
+    "types": ["@cloudflare/workers-types"],
     "strict": true,
     "skipLibCheck": true,
-    "declaration": false,
+    "noEmit": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,
-    "rootDir": "src"
+    "isolatedModules": true
   },
   "include": ["src"]
 }

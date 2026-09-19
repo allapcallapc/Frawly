@@ -85,7 +85,10 @@ it to reach staging/prod; nobody has to remember a separate manual step.
 ### mcp-server/: another REST client, not another way into the data
 
 `mcp-server/` (see its own README) exposes the backend as MCP tools for an
-LLM client. It's a peer of the Flutter app, not a shortcut around it: like
+LLM client, deployed as its own Cloudflare Worker (reachable by URL, no
+local process to run) - a third Worker alongside `frawly-api`'s
+staging/production, with its own `wrangler.toml`/deploy workflow. It's a
+peer of the Flutter app, not a shortcut around it: like
 `lib/services/container_service.dart`, `mcp-server/src/client.ts` only ever
 speaks the Worker's REST API (no direct D1 access), so a new capability
 here means a new/changed Worker route (see the CLAUDE.md rule below) plus

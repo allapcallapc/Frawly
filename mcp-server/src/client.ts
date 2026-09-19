@@ -51,7 +51,12 @@ export class FrawlyClient {
       ? config.backendUrl.slice(0, -1)
       : config.backendUrl;
     this.passphrase = config.passphrase;
-    this.fetchImpl = config.fetchImpl ?? fetch;
+    // Cloudflare Workers' global fetch throws "Illegal invocation" if
+    // called detached from globalThis (e.g. stored as a bare class field
+    // and invoked as this.fetchImpl(...)) - bind it explicitly. Node
+    // doesn't require this, which is why it only surfaced running under
+    // the real Workers runtime (wrangler dev), not the Node-based tests.
+    this.fetchImpl = config.fetchImpl ?? fetch.bind(globalThis);
   }
 
   private get headers(): Record<string, string> {

@@ -1,0 +1,24 @@
+# No secrets or account-specific IDs in here (unlike ../backend/wrangler.toml,
+# which is gitignored because it holds real D1 database_id values) - this
+# Worker has no database binding, just a BACKEND_URL var per environment,
+# and BACKEND_URL isn't secret (see ../env/README.md's identical treatment
+# for the Flutter app's own copy of the same value). It's still a
+# placeholder below until you've deployed ../backend and know the real
+# URL - see README.md.
+name = "frawly-mcp"
+main = "src/worker.ts"
+compatibility_date = "2026-09-18"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+BACKEND_URL = "http://localhost:8787"
+
+[env.staging]
+name = "frawly-mcp-staging"
+[env.staging.vars]
+BACKEND_URL = "REPLACE_WITH_STAGING_BACKEND_URL"
+
+[env.production]
+name = "frawly-mcp-production"
+[env.production.vars]
+BACKEND_URL = "REPLACE_WITH_PRODUCTION_BACKEND_URL"
