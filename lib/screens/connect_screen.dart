@@ -85,24 +85,39 @@ class _ConnectScreenState extends State<ConnectScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
-                  TextField(
-                    controller: _urlController,
-                    keyboardType: TextInputType.url,
-                    decoration: const InputDecoration(
-                      labelText: 'Backend URL',
-                      hintText: 'https://frawly-api.example.workers.dev',
-                      border: OutlineInputBorder(),
+                  // AutofillGroup + autofillHints is what makes Flutter web
+                  // expose these as recognizable url/password fields to the
+                  // browser's own autofill and to password-manager
+                  // extensions (Bitwarden, 1Password, etc.) that hook into
+                  // it - without both, Flutter's canvas-rendered fields are
+                  // otherwise invisible to them.
+                  AutofillGroup(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextField(
+                          controller: _urlController,
+                          keyboardType: TextInputType.url,
+                          autofillHints: const [AutofillHints.url],
+                          decoration: const InputDecoration(
+                            labelText: 'Backend URL',
+                            hintText: 'https://frawly-api.example.workers.dev',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _passphraseController,
+                          obscureText: true,
+                          autofillHints: const [AutofillHints.password],
+                          decoration: const InputDecoration(
+                            labelText: 'Passphrase',
+                            border: OutlineInputBorder(),
+                          ),
+                          onSubmitted: (_) => _connect(),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _passphraseController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Passphrase',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (_) => _connect(),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
