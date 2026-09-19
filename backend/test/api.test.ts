@@ -151,6 +151,35 @@ describe("auth", () => {
   });
 });
 
+describe("CORS", () => {
+  // The Flutter web app is served from a different origin than this
+  // Worker (GitHub Pages vs *.workers.dev) - without CORS headers, the
+  // browser blocks every request before the app ever sees a response,
+  // including the connect screen's own reachability check. A plain
+  // fetch() here (unlike a real browser) doesn't enforce CORS itself, but
+  // it does let us assert the Worker sends the headers a browser needs.
+  test("preflight OPTIONS succeeds without a passphrase and allows Authorization", async () => {
+    const res = await fetch(`${BASE_URL}/health`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://example.com",
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "Authorization",
+      },
+    });
+    expect(res.status).toBe(204);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(res.headers.get("Access-Control-Allow-Headers")).toContain(
+      "Authorization",
+    );
+  });
+
+  test("a real response includes Access-Control-Allow-Origin", async () => {
+    const res = await fetch(`${BASE_URL}/health`, { headers: authHeaders() });
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
+  });
+});
+
 describe("registry: add/remove", () => {
   beforeAll(resetDatabase);
 

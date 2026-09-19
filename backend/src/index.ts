@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { requirePassphrase } from "./auth";
 import { parseRow } from "./db";
 import type { Bindings, ContainerStatus, Ingredient } from "./types";
@@ -32,6 +33,20 @@ const REGISTRY_ORDER =
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+// The Flutter web app is served from a different origin (GitHub Pages)
+// than this Worker, so every request is cross-origin - without this, the
+// browser blocks the connect screen's own reachability check before it
+// ever reaches requirePassphrase below. `origin: "*"` is safe here since
+// auth is a passphrase in an Authorization header, not a cookie - there's
+// no session for a wildcard origin to leak.
+app.use(
+  "*",
+  cors({
+    origin: "*",
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  }),
+);
 app.use("*", requirePassphrase);
 
 app.get("/health", (c) => c.json({ ok: true }));
