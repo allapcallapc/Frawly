@@ -1,0 +1,8 @@
+node_modules/
+.wrangler/
+.dev.vars
+.dev.vars.*
+dist/
+# The real config, with your actual D1 database_id values - see
+# wrangler.toml.example, which IS committed as the template.
+wrangler.toml

@@ -1,0 +1,52 @@
+name: Backend Test
+
+# The backend (Cloudflare Worker + D1) is a separate Node/TypeScript
+# project from the Flutter app - see backend/README.md - so it gets its
+# own workflow rather than folding into test.yml.
+on:
+  push:
+    branches: [ '*' ]
+    paths: ['backend/**', '.github/workflows/backend-test.yml']
+  pull_request:
+    branches: [ '*' ]
+    paths: ['backend/**', '.github/workflows/backend-test.yml']
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Get dependencies
+        run: pnpm install --frozen-lockfile
+
+      # wrangler.toml is gitignored (see wrangler.toml.example's own
+      # comment) - tests only ever run against the top-level --local
+      # config, which has no real secrets in it, so no substitution is
+      # needed here (contrast backend-deploy.yml, which templates in the
+      # real staging/production database_id values from repo secrets).
+      - name: Generate wrangler.toml for local/test use
+        run: cp wrangler.toml.example wrangler.toml
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      # test/api.test.ts spawns a real `wrangler dev` + local D1 (SQLite)
+      # and exercises the HTTP API end-to-end - see that file's own
+      # comment for why this doesn't use @cloudflare/vitest-pool-workers.
+      - name: Run tests
+        run: pnpm test
