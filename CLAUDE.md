@@ -82,6 +82,18 @@ the right environment before every deploy - so, unlike SplitBalance's
 manual `supabase db push`, merging a PR that adds a migration is enough for
 it to reach staging/prod; nobody has to remember a separate manual step.
 
+### mcp-server/: another REST client, not another way into the data
+
+`mcp-server/` (see its own README) exposes the backend as MCP tools for an
+LLM client. It's a peer of the Flutter app, not a shortcut around it: like
+`lib/services/container_service.dart`, `mcp-server/src/client.ts` only ever
+speaks the Worker's REST API (no direct D1 access), so a new capability
+here means a new/changed Worker route (see the CLAUDE.md rule below) plus
+a matching client method and tool - not a separate data path. It
+deliberately doesn't expose `POST /import` (full-registry replace) as a
+tool, since that's more destructive than an LLM client should be handed by
+default.
+
 ### Avoid a new endpoint/migration when the existing ones can do the job
 
 Prefer expressing a new client need as a call to an existing Worker route,
