@@ -67,10 +67,12 @@ instead of two separate Supabase projects:
   `frawly-api` Worker's `staging` environment (`env/staging.json`).
 - Published releases deploy the production app, pointed at the
   `production` environment (`env/prod.json`).
-- `backend-deploy.yml` deploys the Worker itself the same way: `staging` on
-  every push to `main`, `production` on every published release - see
-  `backend/README.md` for the one-time Cloudflare setup this needs
-  (`CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` repo secrets).
+- `backend-deploy.yml` deploys the Worker: `staging` on every push to
+  `main` AND on every PR that touches `backend/**` (so a migration/deploy
+  problem surfaces on the PR itself, against the real Cloudflare account,
+  rather than only after merging), `production` on every published
+  release - see `backend/README.md` for the one-time Cloudflare setup this
+  needs (`CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` repo secrets).
 
 ### Schema changes: D1 migrations, applied by CI
 
