@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/allapcallapc/Frawly/compare/v0.2.0...v0.2.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* containers disappearing after reload (deferred load() race) + surface load errors ([#7](https://github.com/allapcallapc/Frawly/issues/7)) ([ae079a7](https://github.com/allapcallapc/Frawly/commit/ae079a7bf2357f85f4c2b40718601e74e92f2f4e))
+
 ## [0.2.0](https://github.com/allapcallapc/Frawly/compare/v0.1.0...v0.2.0) (2026-09-19)
 
 
