@@ -59,7 +59,8 @@ The app itself never bakes a backend URL or passphrase into a build. Instead:
 ### Two environments: staging and production
 
 Mirrors SplitBalance's prod/staging split, but with two D1 databases behind
-one Worker (`backend/wrangler.toml`'s `[env.staging]`/`[env.production]`)
+one Worker (`backend/wrangler.toml.example`'s `[env.staging]`/`[env.production]`
+- the real `wrangler.toml` is gitignored, see its own comment)
 instead of two separate Supabase projects:
 
 - `main` branch deploys are the staging preview app, pointed at the

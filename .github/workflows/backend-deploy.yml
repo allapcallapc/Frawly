@@ -1,13 +1,16 @@
 name: Backend Deploy
 
 # Two named Cloudflare environments (staging/production - see
-# backend/wrangler.toml), same split as the Flutter app's env/staging.json
+# backend/wrangler.toml.example), same split as the Flutter app's env/staging.json
 # vs env/prod.json. Staging redeploys continuously from main (mirroring
 # deploy-main.yml's web preview); production only deploys on a published
 # release, keeping the backend's version in lockstep with the app's.
 #
-# Needs two repo secrets once a Cloudflare account exists (see
-# backend/README.md): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
+# Needs four repo secrets once a Cloudflare account exists (see
+# backend/README.md): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,
+# D1_STAGING_DATABASE_ID, D1_PRODUCTION_DATABASE_ID. The D1_* secrets are
+# templated into wrangler.toml below rather than committed - see
+# backend/wrangler.toml.example's comment for why.
 on:
   push:
     branches: [main]
@@ -46,6 +49,13 @@ jobs:
 
       - name: Get dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate wrangler.toml
+        run: |
+          sed \
+            -e "s/REPLACE_WITH_STAGING_D1_DATABASE_ID/${{ secrets.D1_STAGING_DATABASE_ID }}/" \
+            -e "s/REPLACE_WITH_PRODUCTION_D1_DATABASE_ID/${{ secrets.D1_PRODUCTION_DATABASE_ID }}/" \
+            wrangler.toml.example > wrangler.toml
 
       - name: Apply D1 migrations
         uses: cloudflare/wrangler-action@v4
@@ -88,6 +98,13 @@ jobs:
 
       - name: Get dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate wrangler.toml
+        run: |
+          sed \
+            -e "s/REPLACE_WITH_STAGING_D1_DATABASE_ID/${{ secrets.D1_STAGING_DATABASE_ID }}/" \
+            -e "s/REPLACE_WITH_PRODUCTION_D1_DATABASE_ID/${{ secrets.D1_PRODUCTION_DATABASE_ID }}/" \
+            wrangler.toml.example > wrangler.toml
 
       - name: Apply D1 migrations
         uses: cloudflare/wrangler-action@v4

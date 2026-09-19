@@ -34,6 +34,14 @@ jobs:
       - name: Get dependencies
         run: pnpm install --frozen-lockfile
 
+      # wrangler.toml is gitignored (see wrangler.toml.example's own
+      # comment) - tests only ever run against the top-level --local
+      # config, which has no real secrets in it, so no substitution is
+      # needed here (contrast backend-deploy.yml, which templates in the
+      # real staging/production database_id values from repo secrets).
+      - name: Generate wrangler.toml for local/test use
+        run: cp wrangler.toml.example wrangler.toml
+
       - name: Typecheck
         run: pnpm run typecheck
 
