@@ -33,7 +33,17 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
-    context.read<ContainersProvider>().load();
+    // Deferred to after the first frame - calling load() directly here
+    // races BackendConnection's own notifyListeners() from loadStored()
+    // (which is what gets _Root to build MainShell in the first place):
+    // load()'s first notifyListeners() (the isLoading=true one) can fire
+    // before this widget's own Consumer<ContainersProvider> descendants
+    // exist to subscribe to it, and on a fresh page load that's enough to
+    // drop the *second* (successful) notifyListeners() too - the registry
+    // fetch succeeds but nothing on screen ever rebuilds to show it.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<ContainersProvider>().load();
+    });
   }
 
   @override
