@@ -75,7 +75,10 @@ export class FrawlyClient {
     } catch {
       // Not JSON - fall through to the generic message.
     }
-    return fallback;
+    // Includes the actual request URL/status so a misconfigured BACKEND_URL
+    // (extra path segment, wrong worker name, etc.) is visible directly in
+    // the tool error instead of needing server-side logs to diagnose.
+    return `${fallback} (${response.status} from ${response.url})`;
   }
 
   /** Verifies the URL/passphrase actually reach a Frawly backend. */
