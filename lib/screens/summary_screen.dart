@@ -6,6 +6,7 @@ import '../providers/containers_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/container_summary.dart';
 import '../utils/home_filter_request.dart';
+import '../widgets/app_header.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/status_badge.dart';
 
@@ -26,7 +27,7 @@ class SummaryScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          _SummaryHeader(onBack: onBack),
+          AppHeader(title: 'Summary', onBack: onBack),
           Expanded(
             child: Consumer<ContainersProvider>(
               builder: (context, provider, _) {
@@ -64,43 +65,6 @@ class SummaryScreen extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SummaryHeader extends StatelessWidget {
-  const _SummaryHeader({this.onBack});
-
-  final VoidCallback? onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: AppColors.navy,
-      padding: const EdgeInsets.fromLTRB(8, 20, 20, 20),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            if (onBack != null)
-              IconButton(
-                icon: const Icon(Icons.chevron_left, color: Colors.white),
-                onPressed: onBack,
-              )
-            else
-              const SizedBox(width: 12),
-            const Text(
-              'Summary',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

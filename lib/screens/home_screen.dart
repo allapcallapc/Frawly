@@ -6,6 +6,7 @@ import '../models/freezer_container.dart';
 import '../providers/containers_provider.dart';
 import '../theme/app_colors.dart';
 import '../utils/home_filter_request.dart';
+import '../widgets/app_header.dart';
 import '../widgets/container_list_tile.dart';
 import '../widgets/empty_state.dart';
 import 'container_detail_screen.dart';
@@ -77,12 +78,26 @@ class _HomeScreenState extends State<HomeScreen> {
             search: _searchController.text,
           );
 
+          final totalCount = provider.containers.length;
           return Column(
             children: [
-              _HomeHeader(
-                totalCount: provider.containers.length,
-                onOpenSummary: widget.onOpenSummary,
-                onOpenManage: widget.onOpenManage,
+              AppHeader(
+                title:
+                    '$totalCount container${totalCount == 1 ? '' : 's'} tracked',
+                actions: [
+                  if (widget.onOpenSummary != null)
+                    AppHeaderIconButton(
+                      icon: Icons.grid_view_rounded,
+                      tooltip: 'Summary',
+                      onPressed: widget.onOpenSummary!,
+                    ),
+                  if (widget.onOpenManage != null)
+                    AppHeaderIconButton(
+                      icon: Icons.settings_outlined,
+                      tooltip: 'Manage containers',
+                      onPressed: widget.onOpenManage!,
+                    ),
+                ],
               ),
               Expanded(
                 child: Stack(
@@ -209,70 +224,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({
-    required this.totalCount,
-    this.onOpenSummary,
-    this.onOpenManage,
-  });
-
-  final int totalCount;
-  final VoidCallback? onOpenSummary;
-  final VoidCallback? onOpenManage;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: AppColors.navy,
-      padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              '$totalCount container${totalCount == 1 ? '' : 's'} tracked',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-          ),
-          if (onOpenSummary != null)
-            _HeaderIconButton(icon: Icons.grid_view_rounded, onPressed: onOpenSummary!),
-          if (onOpenManage != null) ...[
-            const SizedBox(width: 8),
-            _HeaderIconButton(icon: Icons.settings_outlined, onPressed: onOpenManage!),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({required this.icon, required this.onPressed});
-
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.navyLight,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onPressed,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Icon(icon, color: Colors.white, size: 20),
-        ),
       ),
     );
   }

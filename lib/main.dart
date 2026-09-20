@@ -59,12 +59,6 @@ ThemeData _buildLightTheme() {
     colorScheme: colorScheme,
     useMaterial3: true,
     scaffoldBackgroundColor: AppColors.background,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.navy,
-      foregroundColor: Colors.white,
-      centerTitle: false,
-      elevation: 0,
-    ),
     cardTheme: CardThemeData(
       elevation: 0,
       color: Colors.white,
