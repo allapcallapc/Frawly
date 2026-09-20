@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/allapcallapc/Frawly/compare/v0.3.0...v0.4.0) (2026-09-20)
+
+
+### Features
+
+* check for and install app updates from GitHub Releases (Android) ([#10](https://github.com/allapcallapc/Frawly/issues/10)) ([0fe9d8a](https://github.com/allapcallapc/Frawly/commit/0fe9d8a8e1bb9aa68d05166f7dea6afc40482796))
+
 ## [0.3.0](https://github.com/allapcallapc/Frawly/compare/v0.2.0...v0.3.0) (2026-09-20)
 
 
