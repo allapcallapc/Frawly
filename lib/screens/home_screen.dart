@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Freezer Log')),
+      appBar: AppBar(title: const Text('Frawly')),
       body: Consumer<ContainersProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading && !provider.hasLoadedOnce) {

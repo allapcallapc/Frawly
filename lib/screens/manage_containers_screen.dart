@@ -164,8 +164,8 @@ class _ManageContainersScreenState extends State<ManageContainersScreen> {
         utf8.encode(const JsonEncoder.withIndent('  ').convert(document)),
       );
       await FilePicker.saveFile(
-        dialogTitle: 'Export Freezer Log data',
-        fileName: 'freezer-log-export-${formatDateKey(DateTime.now())}.json',
+        dialogTitle: 'Export Frawly data',
+        fileName: 'frawly-export-${formatDateKey(DateTime.now())}.json',
         bytes: bytes,
         mimeType: 'application/json',
         type: FileType.custom,
@@ -181,7 +181,7 @@ class _ManageContainersScreenState extends State<ManageContainersScreen> {
 
   Future<void> _import() async {
     final files = await FilePicker.pickFiles(
-      dialogTitle: 'Import Freezer Log data',
+      dialogTitle: 'Import Frawly data',
       type: FileType.custom,
       allowedExtensions: const ['json'],
     );

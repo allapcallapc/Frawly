@@ -1,5 +1,5 @@
 name: frawly
-description: "Freezer Log: a Flutter app for tracking frozen meal-prep containers, talking to a custom backend over HTTP."
+description: "Frawly: a Flutter app for tracking frozen meal-prep containers, talking to a custom backend over HTTP."
 publish_to: 'none'
 version: 0.1.0+1
 

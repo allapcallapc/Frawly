@@ -2,21 +2,21 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Freezer Log (local backend)",
+      "name": "Frawly (local backend)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
       "args": ["--dart-define-from-file=env/local.json"]
     },
     {
-      "name": "Freezer Log (staging)",
+      "name": "Frawly (staging)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
       "args": ["--dart-define-from-file=env/staging.json"]
     },
     {
-      "name": "Freezer Log (prod)",
+      "name": "Frawly (prod)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",

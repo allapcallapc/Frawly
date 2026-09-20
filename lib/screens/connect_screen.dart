@@ -80,7 +80,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Connect to your Freezer Log backend',
+                    'Connect to your Frawly backend',
                     style: Theme.of(context).textTheme.headlineSmall,
                     textAlign: TextAlign.center,
                   ),

@@ -7,11 +7,11 @@ import 'screens/main_shell.dart';
 import 'services/backend_connection.dart';
 
 void main() {
-  runApp(const FreezerLogApp());
+  runApp(const FrawlyApp());
 }
 
-class FreezerLogApp extends StatelessWidget {
-  const FreezerLogApp({super.key});
+class FrawlyApp extends StatelessWidget {
+  const FrawlyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +31,7 @@ class FreezerLogApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Freezer Log',
+        title: 'Frawly',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0079C2)),
