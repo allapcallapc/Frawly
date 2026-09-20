@@ -3,11 +3,14 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/containers_provider.dart';
 import '../services/backend_connection.dart';
+import '../services/update_service.dart';
 import '../utils/date_utils.dart';
+import '../widgets/update_dialog.dart';
 
 /// Registry management: add a single id, add a bulk range, remove an id,
 /// and export/import the full dataset as a JSON file.
@@ -25,6 +28,41 @@ class _ManageContainersScreenState extends State<ManageContainersScreen> {
   final _rangeFromController = TextEditingController();
   final _rangeToController = TextEditingController();
   bool _busy = false;
+
+  final _updateService = UpdateService();
+  String _appVersion = '';
+  bool _checkingForUpdate = false;
+  String? _updateStatusMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (mounted) setState(() => _appVersion = packageInfo.version);
+  }
+
+  Future<void> _checkForUpdates() async {
+    setState(() {
+      _checkingForUpdate = true;
+      _updateStatusMessage = 'Checking for updates…';
+    });
+
+    final update = await _updateService.checkForUpdate();
+
+    if (!mounted) return;
+    setState(() {
+      _checkingForUpdate = false;
+      _updateStatusMessage = update == null ? "You're up to date." : null;
+    });
+
+    if (update != null) {
+      await showUpdateAvailableDialog(context, _updateService, update);
+    }
+  }
 
   @override
   void dispose() {
@@ -371,6 +409,40 @@ class _ManageContainersScreenState extends State<ManageContainersScreen> {
                   ],
                 ),
               ),
+              if (_appVersion.isNotEmpty || UpdateService.isSupported) ...[
+                const Divider(height: 32),
+                Text('About', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                if (_appVersion.isNotEmpty)
+                  Center(
+                    child: Text(
+                      'Version $_appVersion',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                if (UpdateService.isSupported) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: _checkingForUpdate
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : TextButton(
+                            onPressed: _checkForUpdates,
+                            child: const Text('Check for updates'),
+                          ),
+                  ),
+                  if (_updateStatusMessage != null)
+                    Center(
+                      child: Text(
+                        _updateStatusMessage!,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                ],
+              ],
             ],
           );
         },
