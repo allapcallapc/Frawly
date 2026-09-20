@@ -2,22 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/container_status.dart';
+import '../models/freezer_container.dart';
 import '../providers/containers_provider.dart';
+import '../theme/app_colors.dart';
 import '../utils/home_filter_request.dart';
 import '../widgets/container_list_tile.dart';
 import '../widgets/empty_state.dart';
-import '../widgets/status_badge.dart';
 import 'container_detail_screen.dart';
 
 /// Status filter tabs + search box + the sorted container list. The one
 /// screen every other screen (Summary's cell tap, Container detail's back
 /// button) ultimately routes back to.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.filterRequests});
+  const HomeScreen({
+    super.key,
+    required this.filterRequests,
+    this.onOpenSummary,
+    this.onOpenManage,
+    this.onNewFilling,
+    this.onEmptyContainers,
+  });
 
   /// External requests to apply a filter here (see [HomeFilterRequest]) -
   /// consumed and reset to null once applied.
   final ValueNotifier<HomeFilterRequest?> filterRequests;
+
+  /// Header shortcuts and quick-action buttons - all optional so this
+  /// screen still works standalone (e.g. in tests) without a shell wiring
+  /// them up.
+  final VoidCallback? onOpenSummary;
+  final VoidCallback? onOpenManage;
+  final VoidCallback? onNewFilling;
+  final VoidCallback? onEmptyContainers;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -53,142 +69,328 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Frawly')),
+      backgroundColor: AppColors.background,
       body: Consumer<ContainersProvider>(
         builder: (context, provider, _) {
-          if (provider.isLoading && !provider.hasLoadedOnce) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (provider.error != null && !provider.hasLoadedOnce) {
-            return EmptyState(
-              icon: Icons.error_outline,
-              message: 'Could not load containers.\n${provider.error}',
-              action: FilledButton(
-                onPressed: provider.load,
-                child: const Text('Retry'),
-              ),
-            );
-          }
-
           final filtered = provider.filtered(
             status: _status,
             search: _searchController.text,
           );
 
-          return RefreshIndicator(
-            onRefresh: provider.refresh,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search by container id',
-                      prefixIcon: const Icon(Icons.search),
-                      isDense: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      suffixIcon: _searchController.text.isEmpty
-                          ? null
-                          : IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () =>
-                                  setState(_searchController.clear),
-                            ),
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _StatusFilterChip(
-                          label: 'All',
-                          selected: _status == null,
-                          onTap: () => setState(() => _status = null),
+          return Column(
+            children: [
+              _HomeHeader(
+                totalCount: provider.containers.length,
+                onOpenSummary: widget.onOpenSummary,
+                onOpenManage: widget.onOpenManage,
+              ),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Container(
+                      decoration: const BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(24),
                         ),
-                        for (final status in ContainerStatus.values)
-                          _StatusFilterChip(
-                            label: status.label,
-                            color: statusColor(status),
-                            selected: _status == status,
-                            onTap: () => setState(() => _status = status),
-                          ),
-                      ],
+                      ),
+                      child: _buildBody(provider, filtered),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Expanded(
-                  child: !provider.hasAnyContainers
-                      ? const EmptyState(
-                          message:
-                              'No containers yet.\nAdd some from Manage containers.',
-                        )
-                      : filtered.isEmpty
-                          ? const EmptyState(
-                              icon: Icons.search_off,
-                              message:
-                                  'No containers match this search/filter.',
-                            )
-                          : ListView.separated(
-                              itemCount: filtered.length,
-                              separatorBuilder: (_, _) =>
-                                  const Divider(height: 1),
-                              itemBuilder: (context, index) {
-                                final container = filtered[index];
-                                return ContainerListTile(
-                                  container: container,
-                                  onTap: () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => ContainerDetailScreen(
-                                        id: container.id,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
+                    Positioned(
+                      right: 16,
+                      bottom: 16,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (widget.onNewFilling != null)
+                            _PillButton(
+                              icon: Icons.add,
+                              label: 'New filling',
+                              color: Theme.of(context).colorScheme.primary,
+                              onPressed: widget.onNewFilling!,
                             ),
+                          if (widget.onEmptyContainers != null) ...[
+                            const SizedBox(height: 10),
+                            _PillButton(
+                              icon: Icons.inventory_2_outlined,
+                              label: 'Empty containers',
+                              color: Colors.grey.shade700,
+                              onPressed: widget.onEmptyContainers!,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
     );
   }
+
+  Widget _buildBody(
+    ContainersProvider provider,
+    List<FreezerContainer> filtered,
+  ) {
+    if (provider.isLoading && !provider.hasLoadedOnce) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (provider.error != null && !provider.hasLoadedOnce) {
+      return EmptyState(
+        icon: Icons.error_outline,
+        message: 'Could not load containers.\n${provider.error}',
+        action: FilledButton(
+          onPressed: provider.load,
+          child: const Text('Retry'),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: provider.refresh,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: _StatusSegmentedControl(
+              status: _status,
+              onChanged: (status) => setState(() => _status = status),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by container ID...',
+                hintStyle: TextStyle(color: Colors.grey.shade500),
+                prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => setState(_searchController.clear),
+                      ),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
+          Expanded(
+            child: !provider.hasAnyContainers
+                ? const EmptyState(
+                    message:
+                        'No containers yet.\nAdd some from Manage containers.',
+                  )
+                : filtered.isEmpty
+                    ? const EmptyState(
+                        icon: Icons.search_off,
+                        message: 'No containers match this search/filter.',
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 96),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+                          final container = filtered[index];
+                          return ContainerListTile(
+                            container: container,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ContainerDetailScreen(
+                                  id: container.id,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _StatusFilterChip extends StatelessWidget {
-  const _StatusFilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.color,
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({
+    required this.totalCount,
+    this.onOpenSummary,
+    this.onOpenManage,
   });
 
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Color? color;
+  final int totalCount;
+  final VoidCallback? onOpenSummary;
+  final VoidCallback? onOpenManage;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8, bottom: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onTap(),
-        selectedColor: color?.withValues(alpha: 0.2),
-        labelStyle: selected && color != null
-            ? TextStyle(color: color, fontWeight: FontWeight.w600)
-            : null,
+    return Container(
+      width: double.infinity,
+      color: AppColors.navy,
+      padding: const EdgeInsets.fromLTRB(20, 20, 16, 28),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.ac_unit, color: Colors.white, size: 26),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'FRAWLY',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$totalCount container${totalCount == 1 ? '' : 's'} tracked',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                ),
+              ],
+            ),
+          ),
+          if (onOpenSummary != null)
+            _HeaderIconButton(icon: Icons.grid_view_rounded, onPressed: onOpenSummary!),
+          if (onOpenManage != null) ...[
+            const SizedBox(width: 8),
+            _HeaderIconButton(icon: Icons.settings_outlined, onPressed: onOpenManage!),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.navyLight,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusSegmentedControl extends StatelessWidget {
+  const _StatusSegmentedControl({required this.status, required this.onChanged});
+
+  final ContainerStatus? status;
+  final ValueChanged<ContainerStatus?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.segmentTrack,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          _segment(context, label: 'All', selected: status == null, onTap: () => onChanged(null)),
+          for (final s in ContainerStatus.values)
+            _segment(
+              context,
+              label: s.label,
+              selected: status == s,
+              onTap: () => onChanged(s),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _segment(
+    BuildContext context, {
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.navy : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: selected ? Colors.white : Colors.grey.shade700,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PillButton extends StatelessWidget {
+  const _PillButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(999),
+      elevation: 2,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -25,11 +25,20 @@ class _MainShellState extends State<MainShell> {
   int _index = 0;
   final _homeFilterRequests = ValueNotifier<HomeFilterRequest?>(null);
   late final List<Widget> _screens = [
-    HomeScreen(filterRequests: _homeFilterRequests),
+    HomeScreen(
+      filterRequests: _homeFilterRequests,
+      onOpenSummary: () => setState(() => _index = 4),
+      onOpenManage: () => setState(() => _index = 3),
+      onNewFilling: () => setState(() => _index = 1),
+      onEmptyContainers: () => setState(() => _index = 2),
+    ),
     const NewFillingScreen(),
     const EmptyContainersScreen(),
     const ManageContainersScreen(),
-    SummaryScreen(onJumpToHome: _jumpToHome),
+    SummaryScreen(
+      onJumpToHome: _jumpToHome,
+      onBack: () => setState(() => _index = 0),
+    ),
   ];
 
   @override
