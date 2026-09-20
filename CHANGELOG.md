@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/allapcallapc/Frawly/compare/v0.2.0...v0.3.0) (2026-09-20)
+
+
+### Features
+
+* add an MCP server, hosted as a Cloudflare Worker ([#8](https://github.com/allapcallapc/Frawly/issues/8)) ([ad980f0](https://github.com/allapcallapc/Frawly/commit/ad980f0159c6ab634c4bc2590a8eae6d5ead1c51))
+
+
+### Bug Fixes
+
+* containers disappearing after reload (deferred load() race) + surface load errors ([#7](https://github.com/allapcallapc/Frawly/issues/7)) ([ae079a7](https://github.com/allapcallapc/Frawly/commit/ae079a7bf2357f85f4c2b40718601e74e92f2f4e))
+
 ## [0.2.0](https://github.com/allapcallapc/Frawly/compare/v0.1.0...v0.2.0) (2026-09-19)
 
 
