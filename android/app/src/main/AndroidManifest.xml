@@ -4,7 +4,7 @@
          in-app instead of going through the Play Store. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <application
-        android:label="Freezer Log"
+        android:label="Frawly"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

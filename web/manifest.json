@@ -1,11 +1,11 @@
 {
-    "name": "Freezer Log",
-    "short_name": "Freezer Log",
+    "name": "Frawly",
+    "short_name": "Frawly",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0079C2",
     "theme_color": "#0079C2",
-    "description": "Freezer Log: track frozen meal-prep containers, synced with your own backend.",
+    "description": "Frawly: track frozen meal-prep containers, synced with your own backend.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

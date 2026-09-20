@@ -1,4 +1,4 @@
-# Frawly - Freezer Log
+# Frawly
 
 A mobile-first Flutter web + Android app for tracking frozen meal-prep containers. Every container has a user-assigned id (e.g. `P-3`, `G-12`), a date, a status (vacant / frozen / under construction), and an ordered list of ingredients. The app never talks to a database directly - every request goes through a small backend (a Cloudflare Worker + D1, see `backend/`) over HTTPS, gated by a single shared passphrase you enter once from the app's connect screen (see `lib/screens/connect_screen.dart`) and which is then stored on-device.
 
