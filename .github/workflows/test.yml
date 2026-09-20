@@ -88,4 +88,4 @@ jobs:
           files: coverage-unit/lcov.info,coverage-android/jacocoTestReport.xml
           flags: flutter
           token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
+          fail_ci_if_error: true
