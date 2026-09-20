@@ -96,28 +96,6 @@ ThemeData _buildLightTheme() {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       ),
     ),
-    navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: Colors.white,
-      indicatorColor: AppColors.navy.withValues(alpha: 0.1),
-      labelTextStyle: WidgetStateProperty.resolveWith(
-        (states) => TextStyle(
-          fontSize: 12,
-          fontWeight: states.contains(WidgetState.selected)
-              ? FontWeight.w600
-              : FontWeight.normal,
-          color: states.contains(WidgetState.selected)
-              ? AppColors.navy
-              : Colors.grey.shade600,
-        ),
-      ),
-      iconTheme: WidgetStateProperty.resolveWith(
-        (states) => IconThemeData(
-          color: states.contains(WidgetState.selected)
-              ? AppColors.navy
-              : Colors.grey.shade600,
-        ),
-      ),
-    ),
   );
 }
 
