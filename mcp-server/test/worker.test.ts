@@ -89,4 +89,45 @@ describe('Frawly MCP Worker', () => {
       expect((init.headers as Record<string, string>).Authorization).toBe('Bearer letmein');
     });
   });
+
+  describe('with a BACKEND service binding configured', () => {
+    it('routes through the binding instead of the global fetch', async () => {
+      // Regression test: staging/production route through this binding
+      // because Cloudflare blocks a Worker from fetch()-ing another
+      // Worker's bare *.workers.dev URL directly ("error code: 1042") -
+      // global fetch must never be used when the binding is present.
+      const globalFetch = vi.fn(async () => new Response('should not be called', { status: 500 }));
+      vi.stubGlobal('fetch', globalFetch);
+
+      const bindingFetch = vi.fn(async (url: string | URL) => {
+        const path = new URL(String(url)).pathname;
+        if (path === '/containers/registry') {
+          return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response('not found', { status: 404 });
+      });
+      const envWithBinding: Env = {
+        ...env,
+        BACKEND: { fetch: bindingFetch } as unknown as Env['BACKEND'],
+      };
+
+      const transport = new StreamableHTTPClientTransport(new URL('https://mcp.example.com/mcp'), {
+        fetch: (async (input: string | URL | Request, init?: RequestInit) => {
+          const request = new Request(input, init);
+          if (!request.headers.has('Authorization')) request.headers.set('Authorization', 'Bearer letmein');
+          return worker.fetch(request, envWithBinding);
+        }) as unknown as typeof fetch,
+      });
+      const client = new Client({ name: 'test-client', version: '0.0.0' });
+      await client.connect(transport);
+
+      const result = await client.callTool({ name: 'list_registry', arguments: {} });
+
+      expect(result.isError).toBeFalsy();
+      expect(bindingFetch).toHaveBeenCalled();
+      expect(globalFetch).not.toHaveBeenCalled();
+
+      vi.unstubAllGlobals();
+    });
+  });
 });

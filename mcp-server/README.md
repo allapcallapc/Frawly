@@ -21,6 +21,25 @@ screen) is forwarded as-is on every backend request this session makes -
 the Worker itself never stores or validates it. A wrong passphrase
 surfaces as a normal 401 from the backend, turned into an MCP tool error.
 
+## Talking to the backend: a service binding, not a plain fetch()
+
+Staging/production route to `../backend` through a Cloudflare **service
+binding** (`wrangler.toml`'s `[[env.staging.services]]`/
+`[[env.production.services]]`, consumed in `src/worker.ts`), not a normal
+`fetch()` to `BACKEND_URL`. Cloudflare blocks a Worker from `fetch()`-ing
+another Worker's bare `*.workers.dev` URL directly - it fails with a 404
+whose body is `error code: 1042`, which only ever shows up once deployed
+(local dev's `BACKEND_URL` is a plain `http://localhost` address, which a
+normal `fetch()` reaches fine, so this is easy to miss until staging).
+`BACKEND_URL` is still read for path construction either way - only the
+underlying transport changes.
+
+If you ever see a tool fail with a bare 404 whose body contains
+`error code: 1042` after deploying, this is almost certainly it: check
+that the service binding in `wrangler.toml` is present for that
+environment and that its `service` name matches the backend Worker's
+actual deployed name (`frawly-api-staging` / `frawly-api-production`).
+
 ## One-time deploy setup
 
 ```
