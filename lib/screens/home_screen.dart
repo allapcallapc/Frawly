@@ -230,31 +230,17 @@ class _HomeHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: AppColors.navy,
-      padding: const EdgeInsets.fromLTRB(20, 20, 16, 28),
+      padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.ac_unit, color: Colors.white, size: 26),
-          const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'FRAWLY',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '$totalCount container${totalCount == 1 ? '' : 's'} tracked',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                ),
-              ],
+            child: Text(
+              '$totalCount container${totalCount == 1 ? '' : 's'} tracked',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
             ),
           ),
           if (onOpenSummary != null)
