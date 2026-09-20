@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/containers_provider.dart';
+import '../services/update_service.dart';
 import '../utils/home_filter_request.dart';
+import '../widgets/update_dialog.dart';
 import 'empty_containers_screen.dart';
 import 'home_screen.dart';
 import 'manage_containers_screen.dart';
@@ -44,6 +46,18 @@ class _MainShellState extends State<MainShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<ContainersProvider>().load();
     });
+    // Runs once per app launch so a sideloaded install (the app is
+    // distributed as a GitHub Release APK, not through the Play Store)
+    // still gets notified of new releases - see UpdateService.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForAppUpdate());
+  }
+
+  Future<void> _checkForAppUpdate() async {
+    if (!UpdateService.isSupported) return;
+    final updateService = UpdateService();
+    final update = await updateService.checkForUpdate();
+    if (update == null || !mounted) return;
+    await showUpdateAvailableDialog(context, updateService, update);
   }
 
   @override
