@@ -1,0 +1,111 @@
+name: MCP Server Deploy
+
+# Same two-environment split as backend-deploy.yml: staging redeploys on
+# every push to main AND on every PR touching mcp-server/** (so a
+# deploy problem surfaces on the PR itself), production only on a
+# published release.
+#
+# Unlike backend-deploy.yml, wrangler.toml here has no secret/account-
+# specific values (no D1 database - see wrangler.toml's own comment), so
+# it's committed directly rather than generated from a .example template.
+# The one deployment-specific value it needs, each environment's
+# BACKEND_URL, isn't secret either (see ../env/README.md's identical
+# treatment for the Flutter app's own copy) - it comes from repo
+# *variables* (Settings > Secrets and variables > Actions > Variables),
+# not secrets: MCP_STAGING_BACKEND_URL / MCP_PRODUCTION_BACKEND_URL, set
+# once each environment's `frawly-api` Worker has actually been deployed
+# (see ../backend/README.md).
+#
+# Reuses the same CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID repo secrets
+# backend-deploy.yml uses (same Cloudflare account, no new setup needed).
+on:
+  push:
+    branches: [main]
+    paths: ['mcp-server/**', '.github/workflows/mcp-server-deploy.yml']
+  pull_request:
+    branches: [main]
+    paths: ['mcp-server/**', '.github/workflows/mcp-server-deploy.yml']
+  release:
+    types: [published]
+
+concurrency:
+  group: mcp-server-deploy-${{ github.event_name == 'release' && 'production' || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/mcp-server-test.yml
+
+  deploy-staging:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: mcp-server-staging
+    defaults:
+      run:
+        working-directory: mcp-server
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Get dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set staging BACKEND_URL
+        run: |
+          sed -i "s|REPLACE_WITH_STAGING_BACKEND_URL|${{ vars.MCP_STAGING_BACKEND_URL }}|" wrangler.toml
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: mcp-server
+          command: deploy --env staging
+
+  deploy-production:
+    if: github.event_name == 'release'
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: mcp-server-production
+    defaults:
+      run:
+        working-directory: mcp-server
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Get dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set production BACKEND_URL
+        run: |
+          sed -i "s|REPLACE_WITH_PRODUCTION_BACKEND_URL|${{ vars.MCP_PRODUCTION_BACKEND_URL }}|" wrangler.toml
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: mcp-server
+          command: deploy --env production

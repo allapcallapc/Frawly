@@ -1,0 +1,42 @@
+# No secrets or account-specific IDs in here (unlike ../backend/wrangler.toml,
+# which is gitignored because it holds real D1 database_id values) - this
+# Worker has no database binding, just a BACKEND_URL var per environment,
+# and BACKEND_URL isn't secret (see ../env/README.md's identical treatment
+# for the Flutter app's own copy of the same value). It's still a
+# placeholder below until you've deployed ../backend and know the real
+# URL - see README.md.
+name = "frawly-mcp"
+main = "src/worker.ts"
+compatibility_date = "2026-09-18"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+BACKEND_URL = "http://localhost:8787"
+
+# Staging/production route through a service binding, not a plain fetch()
+# to BACKEND_URL: Cloudflare blocks a Worker from fetch()-ing another
+# Worker's bare *.workers.dev URL directly (error 1042 - "you cannot
+# access a Worker's *.workers.dev URL from within another Worker's
+# subrequest"), which only ever shows up in production/staging since
+# local dev's BACKEND_URL is a plain http://localhost address, not
+# *.workers.dev. src/worker.ts prefers this binding when present and
+# falls back to a plain fetch() (using BACKEND_URL) otherwise - see its
+# own comment. BACKEND_URL itself still needs to be correct in both
+# environments: it's what the request path gets built against even when
+# routed through the binding.
+
+[env.staging]
+name = "frawly-mcp-staging"
+[env.staging.vars]
+BACKEND_URL = "REPLACE_WITH_STAGING_BACKEND_URL"
+[[env.staging.services]]
+binding = "BACKEND"
+service = "frawly-api-staging"
+
+[env.production]
+name = "frawly-mcp-production"
+[env.production.vars]
+BACKEND_URL = "REPLACE_WITH_PRODUCTION_BACKEND_URL"
+[[env.production.services]]
+binding = "BACKEND"
+service = "frawly-api-production"

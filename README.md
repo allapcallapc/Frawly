@@ -24,6 +24,7 @@ Or use the `.vscode/launch.json` / `.claude/launch.json` configs, which set the 
 - `lib/screens/` - Connect, Home, New filling, Empty containers, Container detail, Manage containers, Summary
 - `lib/widgets/` - shared UI (status badges, container list tiles, ingredient editors, the checkbox container selector)
 - `backend/` - the Cloudflare Worker (Hono) + D1 backend; see `backend/README.md`
+- `mcp-server/` - an MCP server exposing the backend as tools for an LLM client (Claude Desktop, Claude Code, etc.); see `mcp-server/README.md`
 
 ## Releases
 
