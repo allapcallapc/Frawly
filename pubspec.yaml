@@ -52,5 +52,5 @@ flutter_launcher_icons:
     # Must match web/manifest.json's background_color/theme_color -
     # flutter_launcher_icons overwrites those fields on every run, so a
     # mismatch here silently clobbers the PWA's brand color.
-    background_color: "#0079C2"
-    theme_color: "#0079C2"
+    background_color: "#314A8A"
+    theme_color: "#314A8A"

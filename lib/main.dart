@@ -34,7 +34,8 @@ class FrawlyApp extends StatelessWidget {
         title: 'Frawly',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0079C2)),
+          // Seeded from the logo's dominant navy-blue container lid.
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF314A8A)),
           useMaterial3: true,
           cardTheme: CardThemeData(
             elevation: 1,
@@ -45,7 +46,7 @@ class FrawlyApp extends StatelessWidget {
         ),
         darkTheme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF0079C2),
+            seedColor: const Color(0xFF314A8A),
             brightness: Brightness.dark,
           ),
           useMaterial3: true,
