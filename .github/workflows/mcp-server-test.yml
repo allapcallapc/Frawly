@@ -8,10 +8,10 @@ name: MCP Server Test
 on:
   push:
     branches: [ '*' ]
-    paths: ['mcp-server/**', '.github/workflows/mcp-server-test.yml']
+    paths: ['mcp-server/**', 'assets/logo.png', '.github/workflows/mcp-server-test.yml']
   pull_request:
     branches: [ '*' ]
-    paths: ['mcp-server/**', '.github/workflows/mcp-server-test.yml']
+    paths: ['mcp-server/**', 'assets/logo.png', '.github/workflows/mcp-server-test.yml']
   workflow_call:
 
 jobs:

@@ -21,10 +21,10 @@ name: MCP Server Deploy
 on:
   push:
     branches: [main]
-    paths: ['mcp-server/**', '.github/workflows/mcp-server-deploy.yml']
+    paths: ['mcp-server/**', 'assets/logo.png', '.github/workflows/mcp-server-deploy.yml']
   pull_request:
     branches: [main]
-    paths: ['mcp-server/**', '.github/workflows/mcp-server-deploy.yml']
+    paths: ['mcp-server/**', 'assets/logo.png', '.github/workflows/mcp-server-deploy.yml']
   release:
     types: [published]
 
