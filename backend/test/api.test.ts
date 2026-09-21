@@ -271,6 +271,15 @@ describe("addRange", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  test("rejects a negative from/to instead of producing malformed ids", async () => {
+    const res = await fetch(`${BASE_URL}/containers/range`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ prefix: "P", from: -5, to: 5 }),
+    });
+    expect(res.status).toBe(400);
+  });
 });
 
 describe("createFilling", () => {
