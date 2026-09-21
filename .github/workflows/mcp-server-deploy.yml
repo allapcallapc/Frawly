@@ -21,10 +21,10 @@ name: MCP Server Deploy
 on:
   push:
     branches: [main]
-    paths: ['mcp-server/**', '.github/workflows/mcp-server-deploy.yml']
+    paths: ['mcp-server/**', 'assets/logo.png', '.github/workflows/mcp-server-deploy.yml']
   pull_request:
     branches: [main]
-    paths: ['mcp-server/**', '.github/workflows/mcp-server-deploy.yml']
+    paths: ['mcp-server/**', 'assets/logo.png', '.github/workflows/mcp-server-deploy.yml']
   release:
     types: [published]
 
@@ -64,6 +64,14 @@ jobs:
         run: |
           sed -i "s|REPLACE_WITH_STAGING_BACKEND_URL|${{ vars.MCP_STAGING_BACKEND_URL }}|" wrangler.toml
 
+      # wrangler-action below runs `wrangler` directly rather than through
+      # a pnpm script, so it doesn't get the generate-icon step package.json
+      # chains in front of `wrangler deploy` for local use - src/icon.generated.ts
+      # (gitignored, see scripts/generate-icon.mjs) has to exist before wrangler
+      # bundles the Worker, or the build fails on the missing import.
+      - name: Generate connector icon
+        run: pnpm run generate-icon
+
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v4
         with:
@@ -101,6 +109,11 @@ jobs:
       - name: Set production BACKEND_URL
         run: |
           sed -i "s|REPLACE_WITH_PRODUCTION_BACKEND_URL|${{ vars.MCP_PRODUCTION_BACKEND_URL }}|" wrangler.toml
+
+      # See the matching comment in deploy-staging: wrangler-action calls
+      # `wrangler` directly, bypassing package.json's generate-icon step.
+      - name: Generate connector icon
+        run: pnpm run generate-icon
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v4

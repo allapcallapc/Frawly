@@ -2,3 +2,7 @@ node_modules/
 dist/
 .wrangler/
 coverage/
+
+# Regenerated from ../assets/logo.png by scripts/generate-icon.mjs - see
+# its own comment for why this is generated rather than committed.
+src/icon.generated.ts
