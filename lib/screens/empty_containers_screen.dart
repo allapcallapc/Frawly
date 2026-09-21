@@ -48,7 +48,9 @@ class _EmptyContainersScreenState extends State<EmptyContainersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           AppHeader(
             title: 'Empty containers',
@@ -95,6 +97,7 @@ class _EmptyContainersScreenState extends State<EmptyContainersScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

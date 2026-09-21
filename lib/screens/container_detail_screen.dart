@@ -127,7 +127,9 @@ class _ContainerDetailScreenState extends State<ContainerDetailScreen> {
         final container = provider.byId(widget.id);
         if (container == null) {
           return Scaffold(
-            body: Column(
+            body: SafeArea(
+              top: false,
+              child: Column(
               children: [
                 AppHeader(
                   title: widget.id,
@@ -140,13 +142,16 @@ class _ContainerDetailScreenState extends State<ContainerDetailScreen> {
                   ),
                 ),
               ],
+              ),
             ),
           );
         }
         _seedFrom(container);
 
         return Scaffold(
-          body: Column(
+          body: SafeArea(
+            top: false,
+            child: Column(
             children: [
               AppHeader(
                 title: widget.id,
@@ -237,6 +242,7 @@ class _ContainerDetailScreenState extends State<ContainerDetailScreen> {
                 ),
               ),
             ],
+          ),
           ),
         );
       },

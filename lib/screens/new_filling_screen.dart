@@ -86,7 +86,9 @@ class _NewFillingScreenState extends State<NewFillingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           AppHeader(
             title: 'New filling',
@@ -174,6 +176,7 @@ class _NewFillingScreenState extends State<NewFillingScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

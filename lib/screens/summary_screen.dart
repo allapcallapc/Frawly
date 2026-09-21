@@ -25,7 +25,9 @@ class SummaryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           AppHeader(title: 'Summary', onBack: onBack),
           Expanded(
@@ -65,6 +67,7 @@ class SummaryScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

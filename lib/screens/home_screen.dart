@@ -71,78 +71,81 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Consumer<ContainersProvider>(
-        builder: (context, provider, _) {
-          final filtered = provider.filtered(
-            status: _status,
-            search: _searchController.text,
-          );
+      body: SafeArea(
+        top: false,
+        child: Consumer<ContainersProvider>(
+          builder: (context, provider, _) {
+            final filtered = provider.filtered(
+              status: _status,
+              search: _searchController.text,
+            );
 
-          final totalCount = provider.containers.length;
-          return Column(
-            children: [
-              AppHeader(
-                title:
-                    '$totalCount container${totalCount == 1 ? '' : 's'} tracked',
-                actions: [
-                  if (widget.onOpenSummary != null)
-                    AppHeaderIconButton(
-                      icon: Icons.grid_view_rounded,
-                      tooltip: 'Summary',
-                      onPressed: widget.onOpenSummary!,
-                    ),
-                  if (widget.onOpenManage != null)
-                    AppHeaderIconButton(
-                      icon: Icons.settings_outlined,
-                      tooltip: 'Manage containers',
-                      onPressed: widget.onOpenManage!,
-                    ),
-                ],
-              ),
-              Expanded(
-                child: Stack(
-                  children: [
-                    Container(
-                      decoration: const BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(24),
-                        ),
+            final totalCount = provider.containers.length;
+            return Column(
+              children: [
+                AppHeader(
+                  title:
+                      '$totalCount container${totalCount == 1 ? '' : 's'} tracked',
+                  actions: [
+                    if (widget.onOpenSummary != null)
+                      AppHeaderIconButton(
+                        icon: Icons.grid_view_rounded,
+                        tooltip: 'Summary',
+                        onPressed: widget.onOpenSummary!,
                       ),
-                      child: _buildBody(provider, filtered),
-                    ),
-                    Positioned(
-                      right: 16,
-                      bottom: 16,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (widget.onNewFilling != null)
-                            _PillButton(
-                              icon: Icons.add,
-                              label: 'New filling',
-                              color: Theme.of(context).colorScheme.primary,
-                              onPressed: widget.onNewFilling!,
-                            ),
-                          if (widget.onEmptyContainers != null) ...[
-                            const SizedBox(height: 10),
-                            _PillButton(
-                              icon: Icons.inventory_2_outlined,
-                              label: 'Empty containers',
-                              color: Colors.grey.shade700,
-                              onPressed: widget.onEmptyContainers!,
-                            ),
-                          ],
-                        ],
+                    if (widget.onOpenManage != null)
+                      AppHeaderIconButton(
+                        icon: Icons.settings_outlined,
+                        tooltip: 'Manage containers',
+                        onPressed: widget.onOpenManage!,
                       ),
-                    ),
                   ],
                 ),
-              ),
-            ],
-          );
-        },
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: const BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(24),
+                          ),
+                        ),
+                        child: _buildBody(provider, filtered),
+                      ),
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (widget.onNewFilling != null)
+                              _PillButton(
+                                icon: Icons.add,
+                                label: 'New filling',
+                                color: Theme.of(context).colorScheme.primary,
+                                onPressed: widget.onNewFilling!,
+                              ),
+                            if (widget.onEmptyContainers != null) ...[
+                              const SizedBox(height: 10),
+                              _PillButton(
+                                icon: Icons.inventory_2_outlined,
+                                label: 'Empty containers',
+                                color: Colors.grey.shade700,
+                                onPressed: widget.onEmptyContainers!,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
