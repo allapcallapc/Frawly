@@ -67,8 +67,10 @@ class ContainerService {
 
   /// A single container, or null if [id] isn't registered.
   Future<FreezerContainer?> getById(String id) async {
-    final response =
-        await _httpClient.get(_uri('/containers/$id'), headers: _headers);
+    final response = await _httpClient.get(
+      _uri('/containers/${Uri.encodeComponent(id)}'),
+      headers: _headers,
+    );
     if (response.statusCode == 404) return null;
     if (response.statusCode != 200) {
       throw StateError(_errorMessage(response, 'Could not load $id.'));
@@ -136,8 +138,10 @@ class ContainerService {
 
   /// Removes [id] from the registry, deleting its stored data with it.
   Future<void> removeId(String id) async {
-    final response =
-        await _httpClient.delete(_uri('/containers/$id'), headers: _headers);
+    final response = await _httpClient.delete(
+      _uri('/containers/${Uri.encodeComponent(id)}'),
+      headers: _headers,
+    );
     if (response.statusCode != 204) {
       throw StateError(_errorMessage(response, 'Could not remove $id.'));
     }
@@ -198,7 +202,7 @@ class ContainerService {
     required List<Ingredient> ingredients,
   }) async {
     final response = await _httpClient.patch(
-      _uri('/containers/$id'),
+      _uri('/containers/${Uri.encodeComponent(id)}'),
       headers: _headers,
       body: jsonEncode({
         'date': date == null ? null : formatDateKey(date),
