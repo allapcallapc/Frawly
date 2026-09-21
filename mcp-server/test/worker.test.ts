@@ -82,6 +82,12 @@ describe('Frawly MCP Worker', () => {
       expect(tools.map((t) => t.name)).toContain('list_registry');
     });
 
+    it('advertises a server icon so MCP clients show it instead of a placeholder', () => {
+      const icons = client.getServerVersion()?.icons;
+      expect(icons).toBeTruthy();
+      expect(icons?.[0]?.src).toMatch(/^data:image\/png;base64,/);
+    });
+
     it('forwards the Authorization header through to the backend as the passphrase', async () => {
       const result = await client.callTool({ name: 'list_registry', arguments: {} });
       expect(result.isError).toBeFalsy();

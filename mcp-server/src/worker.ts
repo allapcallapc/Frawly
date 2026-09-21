@@ -4,6 +4,7 @@ import type { Fetcher } from '@cloudflare/workers-types';
 
 import { FrawlyClient } from './client.js';
 import { registerFrawlyTools } from './tools.js';
+import { FRAWLY_ICON_DATA_URI } from './icon.js';
 
 export interface Env {
   /** The Frawly backend this environment's MCP tools should talk to - see wrangler.toml. */
@@ -65,7 +66,13 @@ export default {
         ? (env.BACKEND.fetch.bind(env.BACKEND) as unknown as typeof fetch)
         : undefined,
     });
-    const server = new McpServer({ name: 'frawly-mcp-server', version: '0.1.0' });
+    const server = new McpServer({
+      name: 'frawly-mcp-server',
+      version: '0.1.0',
+      // Gives clients like Claude's connector picker an icon instead of a
+      // generic placeholder - see icon.ts for why it's inlined as a data URI.
+      icons: [{ src: FRAWLY_ICON_DATA_URI, mimeType: 'image/png', sizes: ['128x128'] }],
+    });
     registerFrawlyTools(server, client);
 
     // Stateless: a fresh server+transport per request. A serverless Worker
