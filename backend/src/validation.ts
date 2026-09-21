@@ -25,6 +25,16 @@ export function isValidDateOrNull(value: unknown): value is string | null {
   return !Number.isNaN(Date.parse(value));
 }
 
+/**
+ * Escapes SQLite LIKE's wildcard characters (`%`, `_`) and the escape
+ * character itself, so a search term is matched literally instead of a
+ * stray `%`/`_` in it being treated as a wildcard. Pair with `escape '\'`
+ * on the LIKE clause.
+ */
+export function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
 /** Drops empty-name rows silently, matching every other write path's rule. */
 export function sanitizeIngredients(raw: unknown): Ingredient[] {
   if (!Array.isArray(raw)) return [];
