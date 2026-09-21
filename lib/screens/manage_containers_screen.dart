@@ -10,6 +10,7 @@ import '../providers/containers_provider.dart';
 import '../services/backend_connection.dart';
 import '../services/update_service.dart';
 import '../utils/date_utils.dart';
+import '../widgets/app_header.dart';
 import '../widgets/update_dialog.dart';
 
 /// Registry management: add a single id, add a bulk range, remove an id,
@@ -256,196 +257,227 @@ class _ManageContainersScreenState extends State<ManageContainersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Manage containers')),
-      body: Consumer<ContainersProvider>(
-        builder: (context, provider, _) {
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text('Add a container', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _addIdController,
-                      decoration: const InputDecoration(
-                        labelText: 'Container id (e.g. P-3)',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                      onSubmitted: (_) => _addSingle(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: _busy ? null : _addSingle,
-                    child: const Text('Add'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Text('Add a range', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextField(
-                      controller: _rangePrefixController,
-                      decoration: const InputDecoration(
-                        labelText: 'Prefix',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _rangeFromController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'From',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _rangeToController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'To',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton(
-                  onPressed: _busy ? null : _addRange,
-                  child: const Text('Add range'),
-                ),
-              ),
-              const Divider(height: 32),
-              Text(
-                'Registered containers (${provider.containers.length})',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              if (provider.error != null && !provider.hasLoadedOnce)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(
-                    'Could not load containers.\n${provider.error}',
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
-                  ),
-                )
-              else if (!provider.hasAnyContainers)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Text('No containers yet.'),
-                )
-              else
-                ...provider.containers.map(
-                  (c) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(c.id),
-                    subtitle: Text('${formatDisplayDate(c.date)} · ${c.status.label}'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Remove',
-                      onPressed: _busy ? null : () => _remove(c.id),
-                    ),
-                  ),
-                ),
-              const Divider(height: 32),
-              Text('Backup', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _busy ? null : _export,
-                      icon: const Icon(Icons.file_upload_outlined),
-                      label: const Text('Export'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _busy ? null : _import,
-                      icon: const Icon(Icons.file_download_outlined),
-                      label: const Text('Import'),
-                    ),
-                  ),
-                ],
-              ),
-              const Divider(height: 32),
-              Text('Backend', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Consumer<BackendConnection>(
-                builder: (context, connection, _) => Row(
+      body: Column(
+        children: [
+          AppHeader(
+            title: 'Manage containers',
+            onBack: () => Navigator.of(context).pop(),
+          ),
+          Expanded(
+            child: Consumer<ContainersProvider>(
+              builder: (context, provider, _) {
+                return ListView(
+                  padding: const EdgeInsets.all(16),
                   children: [
-                    Expanded(
-                      child: Text(
-                        connection.url ?? 'Not connected',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    Text(
+                      'Add a container',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: _busy ? null : _disconnect,
-                      child: const Text('Disconnect'),
-                    ),
-                  ],
-                ),
-              ),
-              if (_appVersion.isNotEmpty || UpdateService.isSupported) ...[
-                const Divider(height: 32),
-                Text('About', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 8),
-                if (_appVersion.isNotEmpty)
-                  Center(
-                    child: Text(
-                      'Version $_appVersion',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                if (UpdateService.isSupported) ...[
-                  const SizedBox(height: 8),
-                  Center(
-                    child: _checkingForUpdate
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : TextButton(
-                            onPressed: _checkForUpdates,
-                            child: const Text('Check for updates'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _addIdController,
+                            decoration: const InputDecoration(
+                              labelText: 'Container id (e.g. P-3)',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                            onSubmitted: (_) => _addSingle(),
                           ),
-                  ),
-                  if (_updateStatusMessage != null)
-                    Center(
-                      child: Text(
-                        _updateStatusMessage!,
-                        style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: _busy ? null : _addSingle,
+                          child: const Text('Add'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Add a range',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: _rangePrefixController,
+                            decoration: const InputDecoration(
+                              labelText: 'Prefix',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _rangeFromController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'From',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _rangeToController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'To',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton(
+                        onPressed: _busy ? null : _addRange,
+                        child: const Text('Add range'),
                       ),
                     ),
-                ],
-              ],
-            ],
-          );
-        },
+                    const Divider(height: 32),
+                    Text(
+                      'Registered containers (${provider.containers.length})',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    if (provider.error != null && !provider.hasLoadedOnce)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          'Could not load containers.\n${provider.error}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      )
+                    else if (!provider.hasAnyContainers)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text('No containers yet.'),
+                      )
+                    else
+                      ...provider.containers.map(
+                        (c) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(c.id),
+                          subtitle: Text(
+                            '${formatDisplayDate(c.date)} · ${c.status.label}',
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            tooltip: 'Remove',
+                            onPressed: _busy ? null : () => _remove(c.id),
+                          ),
+                        ),
+                      ),
+                    const Divider(height: 32),
+                    Text(
+                      'Backup',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _busy ? null : _export,
+                            icon: const Icon(Icons.file_upload_outlined),
+                            label: const Text('Export'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _busy ? null : _import,
+                            icon: const Icon(Icons.file_download_outlined),
+                            label: const Text('Import'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 32),
+                    Text(
+                      'Backend',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Consumer<BackendConnection>(
+                      builder: (context, connection, _) => Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              connection.url ?? 'Not connected',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton(
+                            onPressed: _busy ? null : _disconnect,
+                            child: const Text('Disconnect'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_appVersion.isNotEmpty ||
+                        UpdateService.isSupported) ...[
+                      const Divider(height: 32),
+                      Text(
+                        'About',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      if (_appVersion.isNotEmpty)
+                        Center(
+                          child: Text(
+                            'Version $_appVersion',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      if (UpdateService.isSupported) ...[
+                        const SizedBox(height: 8),
+                        Center(
+                          child: _checkingForUpdate
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : TextButton(
+                                  onPressed: _checkForUpdates,
+                                  child: const Text('Check for updates'),
+                                ),
+                        ),
+                        if (_updateStatusMessage != null)
+                          Center(
+                            child: Text(
+                              _updateStatusMessage!,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                      ],
+                    ],
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

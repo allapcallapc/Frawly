@@ -11,9 +11,11 @@ import 'manage_containers_screen.dart';
 import 'new_filling_screen.dart';
 import 'summary_screen.dart';
 
-/// The app's bottom-nav shell: Home, New filling, Empty containers, Manage
-/// containers, Summary. Container detail is reached by pushing on top of
-/// Home, not a tab of its own.
+/// The app's shell: Home is the one screen that's always on screen: New
+/// filling, Empty containers, Manage containers, and Summary are all
+/// pushed on top of it (from Home's own header/floating buttons) rather
+/// than being tabs of their own, and pop back to it. Container detail is
+/// pushed the same way, from Home's list.
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -22,15 +24,7 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  int _index = 0;
   final _homeFilterRequests = ValueNotifier<HomeFilterRequest?>(null);
-  late final List<Widget> _screens = [
-    HomeScreen(filterRequests: _homeFilterRequests),
-    const NewFillingScreen(),
-    const EmptyContainersScreen(),
-    const ManageContainersScreen(),
-    SummaryScreen(onJumpToHome: _jumpToHome),
-  ];
 
   @override
   void initState() {
@@ -66,46 +60,49 @@ class _MainShellState extends State<MainShell> {
     super.dispose();
   }
 
+  /// Pops any pushed screen(s) back down to Home, then applies the filter -
+  /// used by Summary's cell tap.
   void _jumpToHome(HomeFilterRequest request) {
+    Navigator.of(context).popUntil((route) => route.isFirst);
     _homeFilterRequests.value = request;
-    setState(() => _index = 0);
+  }
+
+  void _openNewFilling() {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const NewFillingScreen()));
+  }
+
+  void _openEmptyContainers() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const EmptyContainersScreen()),
+    );
+  }
+
+  void _openManage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ManageContainersScreen()),
+    );
+  }
+
+  void _openSummary() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SummaryScreen(
+          onJumpToHome: _jumpToHome,
+          onBack: () => Navigator.of(context).pop(),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (index) => setState(() => _index = index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.kitchen_outlined),
-            selectedIcon: Icon(Icons.kitchen),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.add_box_outlined),
-            selectedIcon: Icon(Icons.add_box),
-            label: 'Fill',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.remove_circle_outline),
-            selectedIcon: Icon(Icons.remove_circle),
-            label: 'Empty',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.inventory_2_outlined),
-            selectedIcon: Icon(Icons.inventory_2),
-            label: 'Manage',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.summarize_outlined),
-            selectedIcon: Icon(Icons.summarize),
-            label: 'Summary',
-          ),
-        ],
-      ),
+    return HomeScreen(
+      filterRequests: _homeFilterRequests,
+      onOpenSummary: _openSummary,
+      onOpenManage: _openManage,
+      onNewFilling: _openNewFilling,
+      onEmptyContainers: _openEmptyContainers,
     );
   }
 }

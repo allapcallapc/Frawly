@@ -5,6 +5,7 @@ import 'providers/containers_provider.dart';
 import 'screens/connect_screen.dart';
 import 'screens/main_shell.dart';
 import 'services/backend_connection.dart';
+import 'theme/app_colors.dart';
 
 void main() {
   runApp(const FrawlyApp());
@@ -33,17 +34,7 @@ class FrawlyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Frawly',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          // Seeded from the logo's dominant navy-blue container lid.
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF314A8A)),
-          useMaterial3: true,
-          cardTheme: CardThemeData(
-            elevation: 1,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
+        theme: _buildLightTheme(),
         darkTheme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: const Color(0xFF314A8A),
@@ -55,6 +46,51 @@ class FrawlyApp extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The redesigned light theme: a dark navy app/header bar, a light
+/// gray-blue page background, and rounded, softly-shadowed cards/inputs
+/// throughout - see the Home and Summary screens for where this shows up
+/// most.
+ThemeData _buildLightTheme() {
+  // Seeded from the logo's dominant navy-blue container lid.
+  final colorScheme = ColorScheme.fromSeed(seedColor: const Color(0xFF314A8A));
+  return ThemeData(
+    colorScheme: colorScheme,
+    useMaterial3: true,
+    scaffoldBackgroundColor: AppColors.background,
+    cardTheme: CardThemeData(
+      elevation: 0,
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      ),
+    ),
+  );
 }
 
 /// Gates between [ConnectScreen] and [MainShell] on [BackendConnection]'s

@@ -6,6 +6,7 @@ import '../models/freezer_container.dart';
 import '../models/ingredient.dart';
 import '../providers/containers_provider.dart';
 import '../utils/date_utils.dart';
+import '../widgets/app_header.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/ingredient_list_editor.dart';
 import '../widgets/status_badge.dart';
@@ -126,95 +127,114 @@ class _ContainerDetailScreenState extends State<ContainerDetailScreen> {
         final container = provider.byId(widget.id);
         if (container == null) {
           return Scaffold(
-            appBar: AppBar(title: Text(widget.id)),
-            body: const EmptyState(
-              icon: Icons.error_outline,
-              message: 'This container no longer exists.',
+            body: Column(
+              children: [
+                AppHeader(
+                  title: widget.id,
+                  onBack: () => Navigator.of(context).pop(),
+                ),
+                const Expanded(
+                  child: EmptyState(
+                    icon: Icons.error_outline,
+                    message: 'This container no longer exists.',
+                  ),
+                ),
+              ],
             ),
           );
         }
         _seedFrom(container);
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(widget.id),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.copy_all_outlined),
-                tooltip: 'Duplicate into new filling',
-                onPressed: () => _duplicateIntoNewFilling(container),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_sweep_outlined),
-                tooltip: 'Empty this container',
-                onPressed: _saving ? null : _emptyThisOne,
-              ),
-            ],
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
+          body: Column(
             children: [
-              Row(
-                children: [
-                  Text(
-                    container.prefix,
-                    style: Theme.of(context).textTheme.headlineSmall,
+              AppHeader(
+                title: widget.id,
+                onBack: () => Navigator.of(context).pop(),
+                actions: [
+                  AppHeaderIconButton(
+                    icon: Icons.copy_all_outlined,
+                    tooltip: 'Duplicate into new filling',
+                    onPressed: () => _duplicateIntoNewFilling(container),
                   ),
-                  const SizedBox(width: 12),
-                  StatusBadge(_status),
+                  AppHeaderIconButton(
+                    icon: Icons.delete_sweep_outlined,
+                    tooltip: 'Empty this container',
+                    onPressed: _saving ? null : _emptyThisOne,
+                  ),
                 ],
               ),
-              const SizedBox(height: 20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _pickDate,
-                      icon: const Icon(Icons.calendar_today, size: 18),
-                      label: Text(formatDisplayDate(_date)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<ContainerStatus>(
-                      initialValue: _status,
-                      decoration: const InputDecoration(
-                        labelText: 'Status',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                      ),
-                      items: [
-                        for (final status in ContainerStatus.values)
-                          DropdownMenuItem(
-                            value: status,
-                            child: Text(status.label),
-                          ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          container.prefix,
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        const SizedBox(width: 12),
+                        StatusBadge(_status),
                       ],
-                      onChanged: (value) =>
-                          setState(() => _status = value ?? _status),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text('Ingredients', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              IngredientListEditor(
-                key: ValueKey('${widget.id}-$_formGeneration'),
-                ingredients: _ingredients,
-                onChanged: (v) => _ingredients = v,
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Save changes'),
+                    const SizedBox(height: 20),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _pickDate,
+                            icon: const Icon(Icons.calendar_today, size: 18),
+                            label: Text(formatDisplayDate(_date)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<ContainerStatus>(
+                            initialValue: _status,
+                            decoration: const InputDecoration(
+                              labelText: 'Status',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                            items: [
+                              for (final status in ContainerStatus.values)
+                                DropdownMenuItem(
+                                  value: status,
+                                  child: Text(status.label),
+                                ),
+                            ],
+                            onChanged: (value) =>
+                                setState(() => _status = value ?? _status),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Ingredients',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    IngredientListEditor(
+                      key: ValueKey('${widget.id}-$_formGeneration'),
+                      ingredients: _ingredients,
+                      onChanged: (v) => _ingredients = v,
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: _saving ? null : _save,
+                      child: _saving
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Save changes'),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
