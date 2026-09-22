@@ -31,6 +31,12 @@ class ContainerService {
   Uri _uri(String path, [Map<String, String>? query]) =>
       Uri.parse('${_connection.url}$path').replace(queryParameters: query);
 
+  /// A `/containers/<id>` URI with [id] percent-encoded, so a stray
+  /// path/query-special character in an id can't mangle the request -
+  /// factored out so every `/containers/:id` call site encodes the same
+  /// way instead of risking a copy-paste of the old unencoded pattern.
+  Uri _containerUri(String id) => _uri('/containers/${Uri.encodeComponent(id)}');
+
   Map<String, String> get _headers => _connection.authHeaders;
 
   String _errorMessage(http.Response response, String fallback) {
@@ -68,7 +74,7 @@ class ContainerService {
   /// A single container, or null if [id] isn't registered.
   Future<FreezerContainer?> getById(String id) async {
     final response =
-        await _httpClient.get(_uri('/containers/$id'), headers: _headers);
+        await _httpClient.get(_containerUri(id), headers: _headers);
     if (response.statusCode == 404) return null;
     if (response.statusCode != 200) {
       throw StateError(_errorMessage(response, 'Could not load $id.'));
@@ -137,7 +143,7 @@ class ContainerService {
   /// Removes [id] from the registry, deleting its stored data with it.
   Future<void> removeId(String id) async {
     final response =
-        await _httpClient.delete(_uri('/containers/$id'), headers: _headers);
+        await _httpClient.delete(_containerUri(id), headers: _headers);
     if (response.statusCode != 204) {
       throw StateError(_errorMessage(response, 'Could not remove $id.'));
     }
@@ -198,7 +204,7 @@ class ContainerService {
     required List<Ingredient> ingredients,
   }) async {
     final response = await _httpClient.patch(
-      _uri('/containers/$id'),
+      _containerUri(id),
       headers: _headers,
       body: jsonEncode({
         'date': date == null ? null : formatDateKey(date),

@@ -94,6 +94,14 @@ void main() {
       final container = await serviceFor(client).getById('P-2');
       expect(container!.id, 'P-2');
     });
+
+    test('percent-encodes a URL-special character in the id', () async {
+      final client = MockClient((request) async {
+        expect(request.url.path, '/containers/P%2F1');
+        return http.Response(jsonEncode(rowJson(id: 'P/1')), 200);
+      });
+      await serviceFor(client).getById('P/1');
+    });
   });
 
   group('addId', () {
