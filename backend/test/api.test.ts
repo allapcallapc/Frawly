@@ -479,4 +479,21 @@ describe("list filtering", () => {
     );
     expect(searched.map((c) => c.id)).toEqual(["P-2"]);
   });
+
+  test("treats % and _ in search as literal characters, not LIKE wildcards", async () => {
+    // Neither "%" nor "_" appears in any registered id (P-1, P-2), so an
+    // unescaped LIKE would wrongly match every row (both are LIKE
+    // wildcards); escaped, both should match nothing.
+    const percent = await json<ContainerJson[]>(
+      await fetch(`${BASE_URL}/containers?search=${encodeURIComponent("%")}`, {
+        headers: authHeaders(),
+      }),
+    );
+    expect(percent).toEqual([]);
+
+    const underscore = await json<ContainerJson[]>(
+      await fetch(`${BASE_URL}/containers?search=_`, { headers: authHeaders() }),
+    );
+    expect(underscore).toEqual([]);
+  });
 });

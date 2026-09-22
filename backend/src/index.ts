@@ -4,6 +4,7 @@ import { requirePassphrase } from "./auth";
 import { parseRow } from "./db";
 import type { Bindings, ContainerStatus, Ingredient } from "./types";
 import {
+  escapeLikePattern,
   isValidDateOrNull,
   isValidId,
   isValidStatus,
@@ -136,8 +137,8 @@ app.get("/containers", async (c) => {
     params.push(status);
   }
   if (search && search.trim()) {
-    conditions.push("id like ?");
-    params.push(`%${search.trim()}%`);
+    conditions.push("id like ? escape '\\'");
+    params.push(`%${escapeLikePattern(search.trim())}%`);
   }
   const where = conditions.length ? `where ${conditions.join(" and ")}` : "";
 
