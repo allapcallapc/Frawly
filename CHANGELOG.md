@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.6.0](https://github.com/allapcallapc/Frawly/compare/v0.5.0...v0.6.0) (2026-09-22)
+
+
+### Features
+
+* give the Frawly MCP connector an icon ([318ede7](https://github.com/allapcallapc/Frawly/commit/318ede773a7103fac3b07af848ac9169e5bcea62))
+
+
+### Bug Fixes
+
+* compare the passphrase in constant time ([#25](https://github.com/allapcallapc/Frawly/issues/25)) ([ffe82ad](https://github.com/allapcallapc/Frawly/commit/ffe82ad9b3b7cd2163a79f932eec69024d9a461b)), closes [#21](https://github.com/allapcallapc/Frawly/issues/21)
+* escape % and _ in the /containers search param ([#26](https://github.com/allapcallapc/Frawly/issues/26)) ([552ba2e](https://github.com/allapcallapc/Frawly/commit/552ba2ebb1bbc632e15ae936aec8e32ede9105b1)), closes [#22](https://github.com/allapcallapc/Frawly/issues/22)
+* reject negative from/to in POST /containers/range ([#23](https://github.com/allapcallapc/Frawly/issues/23)) ([ee76d3b](https://github.com/allapcallapc/Frawly/commit/ee76d3b1a86c1fc293a2351de3718d949693417b)), closes [#19](https://github.com/allapcallapc/Frawly/issues/19)
+* respect bottom system nav/gesture inset on every screen ([#18](https://github.com/allapcallapc/Frawly/issues/18)) ([7454b1a](https://github.com/allapcallapc/Frawly/commit/7454b1a2f93eada15e823c4dff9bf351f9f6b122))
+* URL-encode container id when building ContainerService request paths ([#24](https://github.com/allapcallapc/Frawly/issues/24)) ([5ed8e7a](https://github.com/allapcallapc/Frawly/commit/5ed8e7a9abb8d05fe8358a3d34131865f3b2fb82))
+
 ## [0.5.0](https://github.com/allapcallapc/Frawly/compare/v0.4.0...v0.5.0) (2026-09-21)
 
 
