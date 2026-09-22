@@ -76,6 +76,9 @@ app.post("/containers/range", async (c) => {
   ) {
     return c.json({ error: "from/to must be integers." }, 400);
   }
+  if (from < 0 || to < 0) {
+    return c.json({ error: "from/to must not be negative." }, 400);
+  }
   if (to < from) {
     return c.json({ error: "Range end must not be before its start." }, 400);
   }
