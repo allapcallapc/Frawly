@@ -66,33 +66,40 @@ class _EmptyContainersScreenState extends State<EmptyContainersScreen> {
                         'Add some in Manage containers.',
                   );
                 }
-                return ListView(
+                return Padding(
                   padding: const EdgeInsets.all(16),
-                  children: [
-                    Text(
-                      'Selected containers will be reset to vacant, with no '
-                      'date and no ingredients.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    ContainerCheckboxSelector(
-                      containers: provider.containers,
-                      selectedIds: _selectedIds,
-                      onChanged: (s) => setState(() => _selectedIds = s),
-                      hideVacantByDefault: true,
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton.tonal(
-                      onPressed: _submitting ? null : _submit,
-                      child: _submitting
-                          ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Empty selected containers'),
-                    ),
-                  ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Selected containers will be reset to vacant, with no '
+                        'date and no ingredients.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: ContainerCheckboxSelector(
+                          containers: provider.containers,
+                          selectedIds: _selectedIds,
+                          onChanged: (s) => setState(() => _selectedIds = s),
+                          expand: true,
+                          hideVacantByDefault: true,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.tonal(
+                        onPressed: _submitting ? null : _submit,
+                        child: _submitting
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Empty selected containers'),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),

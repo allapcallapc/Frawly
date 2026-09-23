@@ -9,18 +9,24 @@ import 'status_badge.dart';
 /// pick target containers, with an optional prefix filter shown only when
 /// more than one prefix is in use. With [hideVacantByDefault], vacant
 /// containers are hidden until the "Show vacant" chip is toggled on.
+///
+/// By default the list is capped at a fixed height so it can sit inside a
+/// scrolling form; set [expand] to have it fill the remaining height of a
+/// bounded parent instead (e.g. inside an [Expanded]).
 class ContainerCheckboxSelector extends StatefulWidget {
   const ContainerCheckboxSelector({
     super.key,
     required this.containers,
     required this.selectedIds,
     required this.onChanged,
+    this.expand = false,
     this.hideVacantByDefault = false,
   });
 
   final List<FreezerContainer> containers;
   final Set<String> selectedIds;
   final ValueChanged<Set<String>> onChanged;
+  final bool expand;
   final bool hideVacantByDefault;
 
   @override
@@ -45,7 +51,7 @@ class _ContainerCheckboxSelectorState extends State<ContainerCheckboxSelector> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,
       children: [
         if (showPrefixChips || widget.hideVacantByDefault)
           Padding(
@@ -108,9 +114,8 @@ class _ContainerCheckboxSelectorState extends State<ContainerCheckboxSelector> {
             ),
           ],
         ),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 340),
-          child: visible.isEmpty
+        _sized(
+          visible.isEmpty
               ? const Padding(
                   padding: EdgeInsets.symmetric(vertical: 16),
                   child: Text('No containers to show.'),
@@ -148,4 +153,11 @@ class _ContainerCheckboxSelectorState extends State<ContainerCheckboxSelector> {
       ],
     );
   }
+
+  Widget _sized(Widget list) => widget.expand
+      ? Expanded(child: list)
+      : ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 340),
+          child: list,
+        );
 }
