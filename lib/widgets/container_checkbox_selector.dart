@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
 
+import '../models/container_status.dart';
 import '../models/freezer_container.dart';
 import '../utils/date_utils.dart';
 import 'status_badge.dart';
 
 /// The scrollable checkbox list used by New filling and Empty containers to
 /// pick target containers, with an optional prefix filter shown only when
-/// more than one prefix is in use.
+/// more than one prefix is in use. With [hideVacantByDefault], vacant
+/// containers are hidden until the "Show vacant" chip is toggled on.
 class ContainerCheckboxSelector extends StatefulWidget {
   const ContainerCheckboxSelector({
     super.key,
     required this.containers,
     required this.selectedIds,
     required this.onChanged,
+    this.hideVacantByDefault = false,
   });
 
   final List<FreezerContainer> containers;
   final Set<String> selectedIds;
   final ValueChanged<Set<String>> onChanged;
+  final bool hideVacantByDefault;
 
   @override
   State<ContainerCheckboxSelector> createState() =>
@@ -26,36 +30,49 @@ class ContainerCheckboxSelector extends StatefulWidget {
 
 class _ContainerCheckboxSelectorState extends State<ContainerCheckboxSelector> {
   String? _prefixFilter;
+  bool _showVacant = false;
 
   @override
   Widget build(BuildContext context) {
     final prefixes = widget.containers.map((c) => c.prefix).toSet().toList()
       ..sort();
-    final visible = _prefixFilter == null
-        ? widget.containers
-        : widget.containers.where((c) => c.prefix == _prefixFilter).toList();
+    final hideVacant = widget.hideVacantByDefault && !_showVacant;
+    final visible = widget.containers
+        .where((c) => _prefixFilter == null || c.prefix == _prefixFilter)
+        .where((c) => !hideVacant || c.status != ContainerStatus.vacant)
+        .toList();
+    final showPrefixChips = prefixes.length > 1;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (prefixes.length > 1)
+        if (showPrefixChips || widget.hideVacantByDefault)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Wrap(
               spacing: 8,
               runSpacing: 4,
               children: [
-                ChoiceChip(
-                  label: const Text('All'),
-                  selected: _prefixFilter == null,
-                  onSelected: (_) => setState(() => _prefixFilter = null),
-                ),
-                for (final prefix in prefixes)
+                if (showPrefixChips) ...[
                   ChoiceChip(
-                    label: Text(prefix),
-                    selected: _prefixFilter == prefix,
-                    onSelected: (_) => setState(() => _prefixFilter = prefix),
+                    label: const Text('All'),
+                    selected: _prefixFilter == null,
+                    onSelected: (_) => setState(() => _prefixFilter = null),
+                  ),
+                  for (final prefix in prefixes)
+                    ChoiceChip(
+                      label: Text(prefix),
+                      selected: _prefixFilter == prefix,
+                      onSelected: (_) =>
+                          setState(() => _prefixFilter = prefix),
+                    ),
+                ],
+                if (widget.hideVacantByDefault)
+                  FilterChip(
+                    label: const Text('Show vacant'),
+                    selected: _showVacant,
+                    onSelected: (v) => setState(() => _showVacant = v),
                   ),
               ],
             ),

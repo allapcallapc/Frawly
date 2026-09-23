@@ -79,6 +79,7 @@ class _EmptyContainersScreenState extends State<EmptyContainersScreen> {
                       containers: provider.containers,
                       selectedIds: _selectedIds,
                       onChanged: (s) => setState(() => _selectedIds = s),
+                      hideVacantByDefault: true,
                     ),
                     const SizedBox(height: 24),
                     FilledButton.tonal(

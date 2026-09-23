@@ -102,4 +102,34 @@ void main() {
 
     expect(latest, {'P-1', 'P-2'});
   });
+
+  testWidgets('hideVacantByDefault hides vacant containers until toggled',
+      (tester) async {
+    final containers = [
+      _container('P-1', ContainerStatus.vacant),
+      _container('P-2', ContainerStatus.frozen),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ContainerCheckboxSelector(
+            containers: containers,
+            selectedIds: const {},
+            onChanged: (_) {},
+            hideVacantByDefault: true,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('P-1'), findsNothing);
+    expect(find.text('P-2'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilterChip, 'Show vacant'));
+    await tester.pump();
+
+    expect(find.text('P-1'), findsOneWidget);
+    expect(find.text('P-2'), findsOneWidget);
+  });
 }
