@@ -132,4 +132,54 @@ void main() {
     expect(find.text('P-1'), findsOneWidget);
     expect(find.text('P-2'), findsOneWidget);
   });
+
+  testWidgets('Select all skips hidden vacant containers', (tester) async {
+    Set<String>? latest;
+    final containers = [
+      _container('P-1', ContainerStatus.vacant),
+      _container('P-2', ContainerStatus.frozen),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ContainerCheckboxSelector(
+            containers: containers,
+            selectedIds: const {},
+            onChanged: (s) => latest = s,
+            hideVacantByDefault: true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Select all'));
+    await tester.pump();
+
+    expect(latest, {'P-2'});
+  });
+
+  testWidgets('explains an empty list when only vacant containers exist',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ContainerCheckboxSelector(
+            containers: [_container('P-1', ContainerStatus.vacant)],
+            selectedIds: const {},
+            onChanged: (_) {},
+            hideVacantByDefault: true,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.text(
+        'All containers are already empty. Tap Show vacant to see them.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('No containers to show.'), findsNothing);
+  });
 }

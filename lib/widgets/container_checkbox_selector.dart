@@ -43,10 +43,14 @@ class _ContainerCheckboxSelectorState extends State<ContainerCheckboxSelector> {
     final prefixes = widget.containers.map((c) => c.prefix).toSet().toList()
       ..sort();
     final hideVacant = widget.hideVacantByDefault && !_showVacant;
-    final visible = widget.containers
+    final prefixMatches = widget.containers
         .where((c) => _prefixFilter == null || c.prefix == _prefixFilter)
-        .where((c) => !hideVacant || c.status != ContainerStatus.vacant)
         .toList();
+    final visible = hideVacant
+        ? prefixMatches
+            .where((c) => c.status != ContainerStatus.vacant)
+            .toList()
+        : prefixMatches;
     final showPrefixChips = prefixes.length > 1;
 
     return Column(
@@ -116,9 +120,14 @@ class _ContainerCheckboxSelectorState extends State<ContainerCheckboxSelector> {
         ),
         _sized(
           visible.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Text('No containers to show.'),
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Text(
+                    prefixMatches.isNotEmpty
+                        ? 'All containers are already empty. '
+                            'Tap Show vacant to see them.'
+                        : 'No containers to show.',
+                  ),
                 )
               : ListView.builder(
                   shrinkWrap: true,
