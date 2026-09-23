@@ -83,6 +83,7 @@ class _EmptyContainersScreenState extends State<EmptyContainersScreen> {
                           selectedIds: _selectedIds,
                           onChanged: (s) => setState(() => _selectedIds = s),
                           expand: true,
+                          hideVacantByDefault: true,
                         ),
                       ),
                       const SizedBox(height: 16),
