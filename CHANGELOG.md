@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.0](https://github.com/allapcallapc/Frawly/compare/v0.6.0...v0.7.0) (2026-09-26)
+
+
+### Features
+
+* hide vacant containers by default in Empty containers list ([#30](https://github.com/allapcallapc/Frawly/issues/30)) ([73c770e](https://github.com/allapcallapc/Frawly/commit/73c770ed3c8ee8e0f2423a3c0f5eeef92a9a4261))
+* show selected count on empty containers button ([#31](https://github.com/allapcallapc/Frawly/issues/31)) ([c02aaf7](https://github.com/allapcallapc/Frawly/commit/c02aaf7663383ae6f50a7c3b4b0aa0fd601959be))
+
+
+### Bug Fixes
+
+* pin Empty containers button to the bottom of the screen ([#29](https://github.com/allapcallapc/Frawly/issues/29)) ([0b46984](https://github.com/allapcallapc/Frawly/commit/0b4698497dd976f3d5e2fff7ba559e2588cd96fb))
+
 ## [0.6.0](https://github.com/allapcallapc/Frawly/compare/v0.5.0...v0.6.0) (2026-09-22)
 
 
