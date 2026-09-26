@@ -45,6 +45,12 @@ class _EmptyContainersScreenState extends State<EmptyContainersScreen> {
     }
   }
 
+  String get _buttonLabel {
+    final n = _selectedIds.length;
+    if (n == 0) return 'Empty selected containers';
+    return 'Empty $n selected container${n == 1 ? '' : 's'}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,7 +102,7 @@ class _EmptyContainersScreenState extends State<EmptyContainersScreen> {
                                 child:
                                     CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('Empty selected containers'),
+                            : Text(_buttonLabel),
                       ),
                     ],
                   ),
