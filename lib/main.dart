@@ -35,13 +35,12 @@ class FrawlyApp extends StatelessWidget {
         title: 'Frawly',
         debugShowCheckedModeBanner: false,
         theme: _buildLightTheme(),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF314A8A),
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-        ),
+        // Light-only on purpose: screens hard-code light surfaces/text
+        // (AppColors.background, white cards, black87 text), so letting the
+        // system's dark mode swap in a dark theme only turned cards dark
+        // under light-mode text - e.g. unreadable black-on-black counts on
+        // the Summary screen.
+        themeMode: ThemeMode.light,
         home: const _Root(),
       ),
     );
