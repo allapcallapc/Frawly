@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/allapcallapc/Frawly/compare/v0.7.0...v0.7.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* make Summary table readable and fit the screen ([#33](https://github.com/allapcallapc/Frawly/issues/33)) ([3bdd44f](https://github.com/allapcallapc/Frawly/commit/3bdd44fc6424c09adcc26dbae7e2d51445480f79))
+
 ## [0.7.0](https://github.com/allapcallapc/Frawly/compare/v0.6.0...v0.7.0) (2026-09-26)
 
 
