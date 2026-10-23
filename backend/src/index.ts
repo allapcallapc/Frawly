@@ -137,7 +137,13 @@ app.get("/containers", async (c) => {
     params.push(status);
   }
   if (search && search.trim()) {
-    conditions.push("id like ? escape '\\'");
+    // Same rule as the app's home search: a term without a hyphen ignores
+    // the ids' hyphens too, so "G5" finds "G-5".
+    conditions.push(
+      search.includes("-")
+        ? "id like ? escape '\\'"
+        : "replace(id, '-', '') like ? escape '\\'",
+    );
     params.push(`%${escapeLikePattern(search.trim())}%`);
   }
   const where = conditions.length ? `where ${conditions.join(" and ")}` : "";

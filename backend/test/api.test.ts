@@ -478,6 +478,13 @@ describe("list filtering", () => {
       }),
     );
     expect(searched.map((c) => c.id)).toEqual(["P-2"]);
+
+    const searchedWithoutHyphen = await json<ContainerJson[]>(
+      await fetch(`${BASE_URL}/containers?search=P2`, {
+        headers: authHeaders(),
+      }),
+    );
+    expect(searchedWithoutHyphen.map((c) => c.id)).toEqual(["P-2"]);
   });
 
   test("treats % and _ in search as literal characters, not LIKE wildcards", async () => {

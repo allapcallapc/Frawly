@@ -69,12 +69,19 @@ class ContainersProvider with ChangeNotifier {
 
   /// The home list's view: [status]/[search]-filtered, sorted by date
   /// ascending with vacant/null dates first (falling back to id for ties).
+  ///
+  /// A [search] without a hyphen ignores the ids' hyphens too, so "G5"
+  /// finds "G-5" without having to type the separator; one with a hyphen
+  /// (e.g. Summary's "G-" jump) is still matched literally.
   List<FreezerContainer> filtered({ContainerStatus? status, String search = ''}) {
     final needle = search.trim().toLowerCase();
+    final ignoreHyphens = !needle.contains('-');
     final list = _containers.where((c) {
       if (status != null && c.status != status) return false;
-      if (needle.isNotEmpty && !c.id.toLowerCase().contains(needle)) {
-        return false;
+      if (needle.isNotEmpty) {
+        var haystack = c.id.toLowerCase();
+        if (ignoreHyphens) haystack = haystack.replaceAll('-', '');
+        if (!haystack.contains(needle)) return false;
       }
       return true;
     }).toList();
