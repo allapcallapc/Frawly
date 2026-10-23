@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/allapcallapc/Frawly/compare/v0.7.1...v0.8.0) (2026-10-23)
+
+
+### Features
+
+* let container search ignore how the separator is typed ([#35](https://github.com/allapcallapc/Frawly/issues/35)) ([f551b7b](https://github.com/allapcallapc/Frawly/commit/f551b7bf4ac9f631355f81e3d2881911b6324acc))
+
 ## [0.7.1](https://github.com/allapcallapc/Frawly/compare/v0.7.0...v0.7.1) (2026-09-27)
 
 
