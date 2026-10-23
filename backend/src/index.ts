@@ -8,6 +8,7 @@ import {
   isValidDateOrNull,
   isValidId,
   isValidStatus,
+  normalizeSearch,
   sanitizeIngredients,
 } from "./validation";
 
@@ -136,15 +137,10 @@ app.get("/containers", async (c) => {
     conditions.push("status = ?");
     params.push(status);
   }
-  if (search && search.trim()) {
-    // Same rule as the app's home search: a term without a hyphen ignores
-    // the ids' hyphens too, so "G5" finds "G-5".
-    conditions.push(
-      search.includes("-")
-        ? "id like ? escape '\\'"
-        : "replace(id, '-', '') like ? escape '\\'",
-    );
-    params.push(`%${escapeLikePattern(search.trim())}%`);
+  const needle = search ? normalizeSearch(search) : "";
+  if (needle) {
+    conditions.push("lower(id) like ? escape '\\'");
+    params.push(`%${escapeLikePattern(needle)}%`);
   }
   const where = conditions.length ? `where ${conditions.join(" and ")}` : "";
 

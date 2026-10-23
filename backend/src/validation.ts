@@ -35,6 +35,24 @@ export function escapeLikePattern(value: string): string {
   return value.replace(/[\\%_]/g, (char) => `\\${char}`);
 }
 
+/**
+ * Normalises a container search term so separators don't have to be typed
+ * exactly: whitespace and dash variants (en/em dash, minus sign) become a
+ * plain "-", and a bare letters-then-digits term gets the hyphen inserted
+ * ("G5" -> "g-5"). Lowercased, for a literal match on `lower(id)`. Mirrors
+ * `normalizeContainerSearch` in `lib/utils/container_search.dart`, so the
+ * app's home list and `GET /containers` agree. Only the term is rewritten,
+ * never the ids, so "G25" finds "G-25" but never "G2-5".
+ */
+export function normalizeSearch(value: string): string {
+  const cleaned = value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s\-\u2010-\u2015\u2212]+/g, "-");
+  const match = /^([a-z]+)([0-9]+)$/.exec(cleaned);
+  return match ? `${match[1]}-${match[2]}` : cleaned;
+}
+
 /** Drops empty-name rows silently, matching every other write path's rule. */
 export function sanitizeIngredients(raw: unknown): Ingredient[] {
   if (!Array.isArray(raw)) return [];

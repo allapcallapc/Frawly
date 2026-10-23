@@ -478,13 +478,6 @@ describe("list filtering", () => {
       }),
     );
     expect(searched.map((c) => c.id)).toEqual(["P-2"]);
-
-    const searchedWithoutHyphen = await json<ContainerJson[]>(
-      await fetch(`${BASE_URL}/containers?search=P2`, {
-        headers: authHeaders(),
-      }),
-    );
-    expect(searchedWithoutHyphen.map((c) => c.id)).toEqual(["P-2"]);
   });
 
   test("treats % and _ in search as literal characters, not LIKE wildcards", async () => {
@@ -502,5 +495,36 @@ describe("list filtering", () => {
       await fetch(`${BASE_URL}/containers?search=_`, { headers: authHeaders() }),
     );
     expect(underscore).toEqual([]);
+  });
+
+  test("normalizes the search term's separators without merging distinct ids", async () => {
+    for (const id of ["G-5", "G-25", "G2-5"]) {
+      await fetch(`${BASE_URL}/containers`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ id }),
+      });
+    }
+    const search = async (term: string) =>
+      (
+        await json<ContainerJson[]>(
+          await fetch(`${BASE_URL}/containers?search=${encodeURIComponent(term)}`, {
+            headers: authHeaders(),
+          }),
+        )
+      )
+        .map((c) => c.id)
+        .sort();
+
+    // Hyphen inserted between letters and digits; still a substring match.
+    expect(await search("G5")).toEqual(["G-5"]);
+    expect(await search("g25")).toEqual(["G-25"]);
+    // Literal hyphenated terms behave as before.
+    expect(await search("G-5")).toEqual(["G-5"]);
+    expect(await search("G2-5")).toEqual(["G2-5"]);
+    expect(await search("G-")).toEqual(["G-25", "G-5"]);
+    // Spaces and dash variants count as the separator.
+    expect(await search("G 5")).toEqual(["G-5"]);
+    expect(await search("G\u20135")).toEqual(["G-5"]);
   });
 });

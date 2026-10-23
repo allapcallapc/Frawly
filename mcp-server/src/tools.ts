@@ -60,7 +60,7 @@ export function registerFrawlyTools(server: McpServer, client: FrawlyClient): vo
         'Lists containers, optionally filtered by status and/or a text search on id, sorted by date ascending (vacant/null dates first).',
       inputSchema: {
         status: z.enum(STATUS_VALUES).optional().describe('Only include containers with this status.'),
-        search: z.string().optional().describe('Only include containers whose id contains this text (hyphens are ignored when the text has none, so "G5" matches "G-5").'),
+        search: z.string().optional().describe('Only include containers whose id contains this text ("G5", "G 5" and "G–5" are read as "G-5"; distinct ids like "G2-5" are never merged).'),
       },
       annotations: { readOnlyHint: true },
     },
