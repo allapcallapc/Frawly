@@ -523,6 +523,8 @@ describe("list filtering", () => {
     expect(await search("G-5")).toEqual(["G-5"]);
     expect(await search("G2-5")).toEqual(["G2-5"]);
     expect(await search("G-")).toEqual(["G-25", "G-5"]);
+    // A prefix ending in a digit is still found by typing just the prefix.
+    expect(await search("G2")).toEqual(["G-25", "G2-5"]);
     // Spaces and dash variants count as the separator.
     expect(await search("G 5")).toEqual(["G-5"]);
     expect(await search("G\u20135")).toEqual(["G-5"]);

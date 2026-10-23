@@ -36,21 +36,24 @@ export function escapeLikePattern(value: string): string {
 }
 
 /**
- * Normalises a container search term so separators don't have to be typed
- * exactly: whitespace and dash variants (en/em dash, minus sign) become a
- * plain "-", and a bare letters-then-digits term gets the hyphen inserted
- * ("G5" -> "g-5"). Lowercased, for a literal match on `lower(id)`. Mirrors
- * `normalizeContainerSearch` in `lib/utils/container_search.dart`, so the
- * app's home list and `GET /containers` agree. Only the term is rewritten,
- * never the ids, so "G25" finds "G-25" but never "G2-5".
+ * The forms a container search term is matched under, so separators don't
+ * have to be typed exactly: whitespace and dash variants (en/em dash, minus
+ * sign) become a plain "-", and a bare letters-then-digits term also yields
+ * a form with the hyphen inserted ("G5" -> "g5" and "g-5"). Lowercased, for
+ * literal matches on `lower(id)`; an id matches when it contains any form.
+ * Mirrors `containerSearchForms` in `lib/utils/container_search.dart`, so
+ * the app's home list and `GET /containers` agree. Only the term is
+ * rewritten, never the ids, so "G25" finds "G-25" but never "G2-5", while
+ * "G2" still finds "G2-5". Empty for a blank term.
  */
-export function normalizeSearch(value: string): string {
+export function searchForms(value: string): string[] {
   const cleaned = value
     .trim()
     .toLowerCase()
-    .replace(/[\s\-\u2010-\u2015\u2212]+/g, "-");
+    .replace(/[\s\-‐-―−]+/g, "-");
+  if (!cleaned) return [];
   const match = /^([a-z]+)([0-9]+)$/.exec(cleaned);
-  return match ? `${match[1]}-${match[2]}` : cleaned;
+  return match ? [cleaned, `${match[1]}-${match[2]}`] : [cleaned];
 }
 
 /** Drops empty-name rows silently, matching every other write path's rule. */

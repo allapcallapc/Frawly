@@ -70,13 +70,15 @@ class ContainersProvider with ChangeNotifier {
 
   /// The home list's view: [status]/[search]-filtered, sorted by date
   /// ascending with vacant/null dates first (falling back to id for ties).
-  /// [search] goes through [normalizeContainerSearch], so "G5" finds "G-5".
+  /// [search] is matched under each of its [containerSearchForms], so "G5"
+  /// finds "G-5".
   List<FreezerContainer> filtered({ContainerStatus? status, String search = ''}) {
-    final needle = normalizeContainerSearch(search);
+    final forms = containerSearchForms(search);
     final list = _containers.where((c) {
       if (status != null && c.status != status) return false;
-      if (needle.isNotEmpty && !c.id.toLowerCase().contains(needle)) {
-        return false;
+      if (forms.isNotEmpty) {
+        final id = c.id.toLowerCase();
+        if (!forms.any(id.contains)) return false;
       }
       return true;
     }).toList();

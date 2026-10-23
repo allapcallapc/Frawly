@@ -48,6 +48,7 @@ void main() {
     expect(search('G–5'), ['G-5']);
     expect(search('G2-5'), ['G2-5']);
     expect(search('G-'), ['G-25', 'G-5']);
+    expect(search('G2'), ['G-25', 'G2-5']);
     expect(search(''), ['G-25', 'G-5', 'G2-5', 'P-5']);
   });
 }
