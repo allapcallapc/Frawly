@@ -9,6 +9,7 @@ import {
   isValidId,
   isValidStatus,
   sanitizeIngredients,
+  searchForms,
 } from "./validation";
 
 interface RawRow {
@@ -136,9 +137,12 @@ app.get("/containers", async (c) => {
     conditions.push("status = ?");
     params.push(status);
   }
-  if (search && search.trim()) {
-    conditions.push("id like ? escape '\\'");
-    params.push(`%${escapeLikePattern(search.trim())}%`);
+  const forms = search ? searchForms(search) : [];
+  if (forms.length) {
+    conditions.push(
+      `(${forms.map(() => "lower(id) like ? escape '\\'").join(" or ")})`,
+    );
+    params.push(...forms.map((form) => `%${escapeLikePattern(form)}%`));
   }
   const where = conditions.length ? `where ${conditions.join(" and ")}` : "";
 
